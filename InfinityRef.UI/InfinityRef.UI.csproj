@@ -109,12 +109,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\InfinityRef.Core\InfinityRef.Core.csproj" />
 	  <ProjectReference Include="..\InfinityRef.Platform\InfinityRef.Platforms.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Rendering\" />
-	  <Folder Include="ViewModels\" />
 	  <Folder Include="Platforms\" />
 	</ItemGroup>
 
