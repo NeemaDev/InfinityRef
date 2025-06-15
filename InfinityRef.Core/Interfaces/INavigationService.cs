@@ -4,8 +4,8 @@ namespace InfinityRef.Core.Interfaces
 {
     public interface INavigationService
     {
-        Task OpenCanvas(Canvas canvas);
-        Task OpenSubCanvas(CanvasContainer container);
-        Task GoBack();
+        void OpenCanvas(Canvas canvas);
+        void OpenSubCanvas(CanvasContainer container);
+        void GoBack();
     }
 }

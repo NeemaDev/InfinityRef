@@ -4,8 +4,8 @@ namespace InfinityRef.Core.Models
 {
     public class CanvasContainer : Layer
     {
-        private Canvas Canvas { get; set; }
-        private SKBitmap FolderIcon { get; set; }
+        public Canvas Canvas { get; set; }
+        public SKBitmap FolderIcon { get; set; }
 
         public override void Draw(SKCanvas canvas)
         {

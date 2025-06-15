@@ -1,23 +1,41 @@
 ﻿using InfinityRef.Core.Interfaces;
 using InfinityRef.Core.Models;
+using InfinityRef.Core.Navigation;
 
 namespace InfinityRef.Core.Services
 {
     public class NavigationService : INavigationService
     {
-        public Task GoBack()
+        private readonly CanvasStackHandler stackHandler;
+        private Canvas activeCanvas;
+
+        public NavigationService(CanvasStackHandler handler, Canvas initialCanvas)
         {
-            throw new NotImplementedException();
+            stackHandler = handler;
+            activeCanvas = initialCanvas ?? throw new ArgumentNullException(nameof(initialCanvas), "Initial canvas cannot be null.");
         }
 
-        public Task OpenCanvas(Canvas canvas)
+        public void GoBack()
         {
-            throw new NotImplementedException();
+            var previousCanvas = stackHandler.Pop();
+            if (previousCanvas != null)
+            {
+                activeCanvas = previousCanvas;
+            }
         }
 
-        public Task OpenSubCanvas(CanvasContainer container)
+        public void OpenCanvas(Canvas canvas)
         {
-            throw new NotImplementedException();
+            activeCanvas = canvas;
+        }
+
+        public void OpenSubCanvas(CanvasContainer container)
+        {
+            if (activeCanvas != null)
+            {
+                stackHandler.Push(activeCanvas);
+                activeCanvas = container.Canvas;
+            }
         }
     }
 }
