@@ -6,6 +6,8 @@ namespace InfinityRef.Core.Interfaces
     {
         void OpenCanvas(Canvas canvas);
         void OpenSubCanvas(CanvasContainer container);
+
+        Canvas GetActiveCanvas();
         void GoBack();
     }
 }

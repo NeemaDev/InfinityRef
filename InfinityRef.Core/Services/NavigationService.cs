@@ -9,10 +9,15 @@ namespace InfinityRef.Core.Services
         private readonly CanvasStackHandler stackHandler;
         private Canvas activeCanvas;
 
-        public NavigationService(CanvasStackHandler handler, Canvas initialCanvas)
+        public NavigationService(CanvasStackHandler handler)
         {
             stackHandler = handler;
-            activeCanvas = initialCanvas ?? throw new ArgumentNullException(nameof(initialCanvas), "Initial canvas cannot be null.");
+            activeCanvas = new Canvas();
+        }
+
+        public Canvas GetActiveCanvas()
+        {
+            return activeCanvas;
         }
 
         public void GoBack()
