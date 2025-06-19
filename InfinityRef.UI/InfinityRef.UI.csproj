@@ -114,8 +114,4 @@
 	  <ProjectReference Include="..\InfinityRef.Platform\InfinityRef.Platforms.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Platforms\" />
-	</ItemGroup>
-
 </Project>
