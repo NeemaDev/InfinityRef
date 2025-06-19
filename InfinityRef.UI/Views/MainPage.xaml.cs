@@ -4,6 +4,8 @@ using SkiaSharp.Views.Maui;
 using System.Diagnostics;
 #if WINDOWS
   using Windows.Storage;                           // StorageFile
+  using System.Runtime.InteropServices;
+
 #elif MACCATALYST
   // macOS UIHostingController-based drag‐drop gives UniformTypeIdentifiers
   using UniformTypeIdentifiers;
@@ -68,25 +70,38 @@ namespace InfinityRef
         private async void OnDrop(object sender, DropEventArgs e)
         {
             //FileDropImage.Source = filePath;
-            SKBitmap bitmap = null;
 
             // Handle drag-and-drop from browser to app.
 #if WINDOWS
             var winDp = e.PlatformArgs?.DragEventArgs?.DataView;
             if (winDp is not null)
             {
-                var winUri = await winDp.GetUriAsync();  
-                var netUri = new System.Uri(winUri.ToString(), UriKind.Absolute);
+                var formats = winDp.AvailableFormats;
+                if(formats.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.Uri))
+                {
+                    try
+                    {
+                        var winUri = await winDp.GetUriAsync();  
+                        if(winUri is not null)
+                        {
+                            var netUri = new System.Uri(winUri.ToString(), UriKind.Absolute);
 
-                var client = httpClientFactory.CreateClient("ImageClient");
-                using var httpStream = await client.GetStreamAsync(netUri);
-                using var memoryStream = new MemoryStream();
-                await httpStream.CopyToAsync(memoryStream);
+                            var client = httpClientFactory.CreateClient("ImageClient");
+                            using var httpStream = await client.GetStreamAsync(netUri);
+                            using var memoryStream = new MemoryStream();
+                            await httpStream.CopyToAsync(memoryStream);
 
-                var bitmapData = SKBitmap.Decode(memoryStream.ToArray());
-                await mainViewModel.HandleDrop(bitmapData);
-                CanvasView.InvalidateSurface();
-                return;
+                            var bitmapData = SKBitmap.Decode(memoryStream.ToArray());
+                            await mainViewModel.HandleDrop(bitmapData);
+                            CanvasView.InvalidateSurface();
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error retrieving URI: {ex.Message}");
+                    }
+                }
             }
 #endif
             // 1. Handle source from other winui/uwp apps.
@@ -132,30 +147,68 @@ namespace InfinityRef
 
 #if WINDOWS
             // WinUI gives a DataView with StorageItems
-            var storageItems = await e.PlatformArgs!.DragEventArgs!.DataView.GetStorageItemsAsync();
-            var sf = storageItems.OfType<StorageFile>()
-                                 .FirstOrDefault(f => IsImagePath(f.Path));
-            if (sf != null)
-                file = new FileResult(sf.Path);
+            //var storageItems = await e.PlatformArgs!.DragEventArgs!.DataView.GetStorageItemsAsync();
+            //var sf = storageItems.OfType<StorageFile>()
+                                 //.FirstOrDefault(f => IsImagePath(f.Path));
+            //if (sf != null)
+                //file = new FileResult(sf.Path);
+
+            var dp = e.PlatformArgs?.DragEventArgs?.DataView;
+              if (dp == null)  
+                return;
+
+              // 1) Look at what formats the drag actually contains
+              var availableFormats = dp.AvailableFormats;
+              Debug.WriteLine("Drag formats: " + string.Join(", ", availableFormats));
+
+                bool looksLikeFileDrop =
+                   availableFormats.Contains("FileDrop")
+                || availableFormats.Contains("FileName")
+                || availableFormats.Contains("FileNameW")
+                || availableFormats.Contains("FileContents")
+                || availableFormats.Contains("FileGroupDescriptorW");
+
+              // 2) Only attempt storage‐item queries if StorageItems is advertised
+              if (looksLikeFileDrop)
+              {
+                try
+                {
+                  // 3) Safe to call
+                  var items = await dp.GetStorageItemsAsync();
+                  var sf    = items
+                               .OfType<StorageFile>()
+                               .FirstOrDefault(f => IsImagePath(f.Path));
+
+                  if (sf != null)
+                    file = new FileResult(sf.Path);
+                }
+                catch (COMException ex)
+                {
+                  Debug.WriteLine($"GetStorageItemsAsync failed: {ex.Message}");
+                  // fall back to other formats or ignore
+                }
+              }
 #endif
 
             if (file == null)
+            {
                 return;
+            }
+            else
+            {
+                // 3) Decode via stream
+                using var fs = File.OpenRead(file.FullPath);
+                using var ms = new MemoryStream();
+                await fs.CopyToAsync(ms);
+                ms.Position = 0;
+                var bmp = SKBitmap.Decode(ms.ToArray());
 
-            // 3) Decode via stream
-            using var fs = File.OpenRead(file.FullPath);
-            using var ms = new MemoryStream();
-            await fs.CopyToAsync(ms);
-            ms.Position = 0;
-            var bmp = SKBitmap.Decode(ms.ToArray());
+                // 4) Hand it to your VM
+                await mainViewModel.HandleDrop(bmp);
 
-            // 4) Hand it to your VM
-            await mainViewModel.HandleDrop(bmp);
-
-            // 5) Refresh the canvas
-            CanvasView.InvalidateSurface();
-
-
+                // 5) Refresh the canvas
+                CanvasView.InvalidateSurface();
+            }
 
         }
 

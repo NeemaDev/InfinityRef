@@ -7,6 +7,8 @@ namespace InfinityRef.Core.Models
         private SKMatrix Transform { get; set; }
         private List<Layer> Layers { get; set; } = new();
 
+        public int LayerCount => Layers.Count;
+
         public void AddLayer(Layer layer)
         {
             Layers.Add(layer);

@@ -2,6 +2,7 @@
 using InfinityRef.Core.Interfaces;
 using InfinityRef.Core.Models;
 using SkiaSharp;
+using System.Diagnostics;
 
 namespace InfinityRef.UI.ViewModels
 {
@@ -23,10 +24,12 @@ namespace InfinityRef.UI.ViewModels
         }
         public Task HandleDrop(SKBitmap skBitmap)
         {
+
             var activeCanvas = navigationService.GetActiveCanvas();
             var layer = new ImageLayer() { Bitmap = skBitmap };
             activeCanvas.AddLayer(layer);
 
+            Debug.WriteLine("Layer added. Total layers: " + activeCanvas.LayerCount);
             return Task.CompletedTask;
         }
 
