@@ -11,11 +11,6 @@ namespace InfinityRef.Core.Models
             Canvas = new Canvas();
         }
 
-        public override void Draw(SKCanvas canvas)
-        {
-            base.Draw(canvas);
-        }
-
         public void OnTap()
         {
 

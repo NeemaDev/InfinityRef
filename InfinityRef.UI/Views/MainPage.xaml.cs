@@ -1,5 +1,9 @@
-﻿using InfinityRef.UI.Interfaces;
+﻿using InfinityRef.Core.Interfaces;
+using InfinityRef.Core.Models;
+using InfinityRef.UI.Interfaces;
+using InfinityRef.UI.Rendering;
 using InfinityRef.UI.ViewModels;
+using SkiaSharp;
 using SkiaSharp.Views.Maui;
 #if WINDOWS
   using Windows.Storage;                           // StorageFile
@@ -18,15 +22,34 @@ namespace InfinityRef
     public partial class MainPage : ContentPage
     {
         private readonly MainViewModel mainViewModel;
-        private readonly IDragDropService dragDropSercvice;
+        private readonly IDragDropService dragDropService;
+        private readonly INavigationService navigationService;
 
-
-        public MainPage(MainViewModel viewModel, IDragDropService dragDropService)
+        public MainPage(MainViewModel viewModel, INavigationService navigationService, IDragDropService dragDropService)
         {
             InitializeComponent();
             BindingContext = viewModel;
             mainViewModel = viewModel;
-            this.dragDropSercvice = dragDropService;
+            this.dragDropService = dragDropService;
+            this.navigationService = navigationService;
+
+            // Subscribe to canvas changes.
+            navigationService.ActiveCanvasChanged += (_, __) => HookCanvas(navigationService.ActiveCanvas);
+
+            // Set the first canvas.
+            HookCanvas(navigationService.ActiveCanvas);
+        }
+
+        /// <summary>
+        /// Associates the specified <see cref="Canvas"/> with the application, setting it as the active canvas.
+        /// </summary>
+        /// <remarks>This method updates the application's state to use the provided <see cref="Canvas"/> 
+        /// as the active canvas. Ensure that the <paramref name="canvas"/> is properly initialized before calling this
+        /// method.</remarks>
+        /// <param name="canvas">The <see cref="Canvas"/> to be set as the active canvas. This parameter cannot be <see langword="null"/>.</param>
+        private void HookCanvas(Canvas canvas)
+        {
+            mainViewModel.SetActiveCanvas(canvas);
         }
 
         /// <summary>
@@ -39,16 +62,16 @@ namespace InfinityRef
         /// <param name="dropEvent">The event data containing information about the drop operation.</param>
         private async void OnDrop(object sender, DropEventArgs dropEvent)
         {
-            var result = await dragDropSercvice.HandleDropAsync(dropEvent);
+            var result = await dragDropService.HandleDropAsync(dropEvent);
 
-            if (!result.Success || result.Bitmap is null)
+            if (!result.Success || result.ImageData is null)
             {
                 return;
             }
             else
             {
-                await mainViewModel.HandleDrop(result.Bitmap);
-                CanvasView.InvalidateSurface();
+                await mainViewModel.HandleDrop(result.ImageData);
+                CanvasView.InvalidateSurface(); // Triggers skisharps repaint routine.
             }
 
         }
@@ -63,7 +86,7 @@ namespace InfinityRef
         /// <param name="dragEvent">The <see cref="DragEventArgs"/> containing data about the drag-over operation.</param>
         private async void DragOver(object sender, DragEventArgs dragEvent)
         {
-            var result = await dragDropSercvice.AnalyzeDragOverAsync(dragEvent);
+            var result = await dragDropService.AnalyzeDragOverAsync(dragEvent);
 
 #if WINDOWS
             try
@@ -91,9 +114,23 @@ namespace InfinityRef
 
         }
 
+        /// <summary>
+        /// Handles the paint surface event to render the current canvas layers onto the provided SkiaSharp canvas.
+        /// </summary>
+        /// <remarks>This method clears the canvas to a transparent background before rendering each layer
+        /// from the current canvas in the <see cref="MainViewModel"/>. The layers are drawn in the order they appear
+        /// in the collection.</remarks>
+        /// <param name="sender">The source of the event. Typically the control triggering the paint operation.</param>
+        /// <param name="e">The event arguments containing the SkiaSharp surface to be painted.</param>
         private void OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
         {
+            var canvas = e.Surface.Canvas;
+            canvas.Clear(SKColors.Transparent);
 
+            foreach (var layer in mainViewModel.CurrentCanvas.Layers)
+            {
+                LayerRenderer.Draw(layer, canvas);
+            }
         }
     }
 }

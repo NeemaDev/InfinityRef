@@ -7,39 +7,38 @@ namespace InfinityRef.Core.Services
     public class NavigationService : INavigationService
     {
         private readonly CanvasStackHandler stackHandler;
-        private Canvas activeCanvas;
 
         public NavigationService(CanvasStackHandler handler)
         {
             stackHandler = handler;
-            activeCanvas = new Canvas();
+            ActiveCanvas = new Canvas();
         }
 
-        public Canvas GetActiveCanvas()
-        {
-            return activeCanvas;
-        }
+        public Canvas ActiveCanvas { get; private set; } = new();
+
+        public event EventHandler? ActiveCanvasChanged;
 
         public void GoBack()
         {
             var previousCanvas = stackHandler.Pop();
             if (previousCanvas != null)
             {
-                activeCanvas = previousCanvas;
+                ActiveCanvas = previousCanvas;
             }
         }
 
         public void OpenCanvas(Canvas canvas)
         {
-            activeCanvas = canvas;
+            ActiveCanvas = canvas;
+            ActiveCanvasChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public void OpenSubCanvas(CanvasContainer container)
         {
-            if (activeCanvas != null)
+            if (ActiveCanvas != null)
             {
-                stackHandler.Push(activeCanvas);
-                activeCanvas = container.Canvas;
+                stackHandler.Push(ActiveCanvas);
+                ActiveCanvas = container.Canvas;
             }
         }
     }

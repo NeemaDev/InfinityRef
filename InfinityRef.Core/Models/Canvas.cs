@@ -1,12 +1,16 @@
-﻿using SkiaSharp;
+﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace InfinityRef.Core.Models
 {
     public class Canvas
     {
-        private SKMatrix Transform { get; set; }
-        private List<Layer> Layers { get; set; } = new();
+        public Canvas()
+        {
+            Layers.CollectionChanged += OnLayersChanged;
+        }
 
+        public ObservableCollection<Layer> Layers { get; } = new ObservableCollection<Layer>();
         public int LayerCount => Layers.Count;
 
         public void AddLayer(Layer layer)
@@ -18,5 +22,11 @@ namespace InfinityRef.Core.Models
         {
             Layers.Remove(layer);
         }
+
+        private void OnLayersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            // Just in case, if need to handle extra stuff.
+        }
+
     }
 }

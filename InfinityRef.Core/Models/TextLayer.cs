@@ -1,10 +1,10 @@
-﻿using SkiaSharp;
+﻿using static InfinityRef.Core.Models.Enums;
 
 namespace InfinityRef.Core.Models
 {
     public class TextLayer : Layer
     {
-        public TextLayer(string text, SKColor color, float fontSize, string fontFamily, SKTextAlign textAlign)
+        public TextLayer(string text, ColorData color, float fontSize, string fontFamily, HorizontalTextAlignment textAlign)
         {
             Text = text;
             Color = color;
@@ -13,15 +13,11 @@ namespace InfinityRef.Core.Models
             TextAlign = textAlign;
         }
 
-        private string Text { get; set; }
-        private SKColor Color { get; set; }
-        private float FontSize { get; set; }
-        private string FontFamily { get; set; }
-        private SKTextAlign TextAlign { get; set; }
+        public string Text { get; set; }
+        public ColorData Color { get; set; }
+        public float FontSize { get; set; }
+        public string FontFamily { get; set; }
+        public HorizontalTextAlignment TextAlign { get; set; }
 
-        public override void Draw(SKCanvas canvas)
-        {
-            base.Draw(canvas);
-        }
     }
 }

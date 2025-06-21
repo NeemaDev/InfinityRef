@@ -1,5 +1,4 @@
 ﻿using InfinityRef.UI.Interfaces;
-using SkiaSharp;
 
 namespace InfinityRef.UI.Services
 {
@@ -10,9 +9,9 @@ namespace InfinityRef.UI.Services
             throw new NotImplementedException();
         }
 
-        public Task<(bool Success, SKBitmap? Bitmap)> HandleDropAsync(DropEventArgs _)
+        public Task<(bool Success, byte[]? ImageData)> HandleDropAsync(DropEventArgs e)
         {
-            return Task.FromResult<(bool, SKBitmap?)>((false, null));
+            throw new NotImplementedException();
         }
     }
 }

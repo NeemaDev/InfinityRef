@@ -1,10 +1,8 @@
-﻿using SkiaSharp;
-
-namespace InfinityRef.UI.Interfaces
+﻿namespace InfinityRef.UI.Interfaces
 {
     public interface IDragDropService
     {
-        Task<(bool Success, SKBitmap? Bitmap)> HandleDropAsync(DropEventArgs e);
+        Task<(bool Success, byte[]? ImageData)> HandleDropAsync(DropEventArgs e);
         Task<(bool IsValid, string Source)> AnalyzeDragOverAsync(DragEventArgs e);
 
 

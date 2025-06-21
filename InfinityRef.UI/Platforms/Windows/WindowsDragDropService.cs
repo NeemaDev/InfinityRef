@@ -1,5 +1,4 @@
 ﻿using InfinityRef.UI.Interfaces;
-using SkiaSharp;
 using System.Text.RegularExpressions;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -16,13 +15,18 @@ namespace InfinityRef.UI.Platforms.Windows
           => httpClientFactory = httpFactory;
 
         /// <summary>
-        /// Handles drag-and-drop events and attempts to extract and decode an image from the dropped data.
-        /// Supports URI drops, HTML drops with image sources, and file drops from the file explorer.
-        /// Returns a tuple indicating success and the decoded <see cref="SKBitmap"/> if available.
+        /// Handles a drop event and attempts to retrieve image data from the dropped content.
         /// </summary>
-        /// <param name="dropEvent">The drag-and-drop event arguments.</param>
-        /// <returns>A tuple containing a success flag and the decoded <see cref="SKBitmap"/> if successful; otherwise, null.</returns>
-        public async Task<(bool Success, SKBitmap? Bitmap)> HandleDropAsync(DropEventArgs dropEvent)
+        /// <remarks>This method supports multiple types of drop content, including: <list type="bullet">
+        /// <item><description>URIs (e.g., from browsers or email clients).</description></item> <item><description>HTML
+        /// content containing an <c>&lt;img&gt;</c> tag with a valid <c>src</c> attribute.</description></item>
+        /// <item><description>Files dropped from file explorers, provided they are of a supported
+        /// type.</description></item> </list> If the dropped content does not match any of these formats or an error
+        /// occurs during processing, the method returns <c>(false, null)</c>.</remarks>
+        /// <param name="dropEvent">The event arguments containing information about the drop operation.</param>
+        /// <returns>A tuple containing a boolean indicating success and a byte array with the image data if successful;
+        /// otherwise, <see langword="null"/>.</returns>
+        public async Task<(bool Success, byte[]? ImageData)> HandleDropAsync(DropEventArgs dropEvent)
         {
             var dataPackageView = dropEvent.PlatformArgs?.DragEventArgs?.DataView;
             if (dataPackageView == null)
@@ -39,11 +43,24 @@ namespace InfinityRef.UI.Platforms.Windows
                 {
                     var winUri = await dataPackageView.GetUriAsync();
                     var url = winUri?.AbsoluteUri;
+                    if (url is string && (url.StartsWith("http://") || url.StartsWith("https://")))
+                    {
+                        // Ensure the URL is well-formed and absolute.
+                        if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+                        {
+                            return (false, null);
+                        }
+                        // Attempt to fetch the image data from the URL.
+                        using var client = httpClientFactory.CreateClient("ImageClient");
+                        var bytes = await client.GetByteArrayAsync(url);
+                        return (true, bytes);
+                    }
+
                     if (!string.IsNullOrWhiteSpace(url))
                     {
                         using var client = httpClientFactory.CreateClient("ImageClient");
                         using var stream = await client.GetStreamAsync(url);
-                        return (true, DecodeStream(stream));
+                        return (true, await ReadAllBytesAsync(stream));
                     }
                 }
                 catch { }
@@ -62,7 +79,7 @@ namespace InfinityRef.UI.Platforms.Windows
                     {
                         using var client = httpClientFactory.CreateClient("ImageClient");
                         using var stream = await client.GetStreamAsync(img.Groups["u"].Value);
-                        return (true, DecodeStream(stream));
+                        return (true, await ReadAllBytesAsync(stream));
                     }
                 }
                 catch { }
@@ -81,7 +98,7 @@ namespace InfinityRef.UI.Platforms.Windows
                     if (storageFile != null)
                     {
                         using var read = await storageFile.OpenReadAsync();
-                        return (true, DecodeStream(read.AsStreamForRead()));
+                        return (true, await ReadAllBytesAsync(read.AsStreamForRead()));
                     }
                 }
                 catch { }
@@ -141,17 +158,16 @@ namespace InfinityRef.UI.Platforms.Windows
 
 
         /// <summary>
-        /// Decodes an image from the provided stream into an <see cref="SKBitmap"/> object.
+        /// Asynchronously reads all bytes from the specified stream and returns them as a byte array.
         /// </summary>
-        /// <remarks>The method reads the entire stream into memory before decoding the image. Ensure the
-        /// stream contains valid image data supported by <see cref="SKBitmap.Decode(byte[])"/>.</remarks>
-        /// <param name="stream">The input stream containing image data. The stream must be readable and contain valid image data.</param>
-        /// <returns>An <see cref="SKBitmap"/> object representing the decoded image.</returns>
-        private static SKBitmap DecodeStream(Stream stream)
+        /// <remarks>The method reads the entire content of the stream asynchronously into memory.</remarks>
+        /// <param name="stream">The input stream to read from. The stream must support reading.</param>
+        /// <returns>A byte array containing all the data read from the stream.</returns>
+        private async Task<byte[]> ReadAllBytesAsync(Stream stream)
         {
             using var memoryStream = new MemoryStream();
-            stream.CopyTo(memoryStream);
-            return SKBitmap.Decode(memoryStream.ToArray());
+            await stream.CopyToAsync(memoryStream);
+            return memoryStream.ToArray();
         }
 
         /// <summary>
