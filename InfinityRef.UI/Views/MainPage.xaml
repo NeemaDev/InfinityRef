@@ -12,10 +12,17 @@
                                        DragOver="DragOver"
                                        Drop="OnDrop" />  
                 <PanGestureRecognizer PanUpdated="OnPanUpdated" />  
-            </ContentView.GestureRecognizers>  
+            </ContentView.GestureRecognizers>
 
             <skia:SKCanvasView x:Name="CanvasView"  
-                               PaintSurface="OnPaintSurface" />  
+                               PaintSurface="OnPaintSurface" 
+                               EnableTouchEvents="True"
+                               Touch="OnCanvasTouch">
+                <skia:SKCanvasView.GestureRecognizers>
+                    <TapGestureRecognizer NumberOfTapsRequired="1"
+                                          Tapped="OnCanvasTapped"/>
+                </skia:SKCanvasView.GestureRecognizers>
+            </skia:SKCanvasView>
 
         </ContentView>  
     </Grid>  

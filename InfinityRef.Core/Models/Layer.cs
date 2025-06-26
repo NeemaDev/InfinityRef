@@ -4,5 +4,6 @@
     {
         private string Id { get; set; }
         private bool IsVisible { get; set; }
+        public bool IsSelected { get; set; }
     }
 }

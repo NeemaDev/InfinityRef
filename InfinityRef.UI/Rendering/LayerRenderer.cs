@@ -5,24 +5,34 @@ namespace InfinityRef.UI.Rendering
 {
     public static class LayerRenderer
     {
-        public static void Draw(Layer layer, SKCanvas canvas)
+        public static SKRect Draw(Layer layer, SKCanvas canvas)
         {
             switch (layer)
             {
                 case ImageLayer imageLayer:
-                    DrawImageLayer(imageLayer, canvas);
+                    return DrawImageLayer(imageLayer, canvas);
                     break;
                 case TextLayer textLayer:
-                    DrawTextLayer(textLayer, canvas);
+                    return DrawTextLayer(textLayer, canvas);
                     break;
                 default:
-                    break;
+                    return SKRect.Empty; // Unsupported layer type, do nothing.
+
             }
 
 
         }
 
-        private static void DrawImageLayer(ImageLayer imageLayer, SKCanvas canvas)
+        /// <summary>
+        /// Renders an image layer onto the specified canvas, applying optional transformations and effects.
+        /// </summary>
+        /// <remarks>This method decodes the image data from the <see cref="ImageLayer.ImageBytes"/>
+        /// property and draws it onto the canvas. Optional effects such as grayscale and flipping (horizontal or
+        /// vertical) are applied based on the properties of the <paramref name="imageLayer"/>. If the layer is marked
+        /// as selected, a selection rectangle is drawn around the image.</remarks>
+        /// <param name="imageLayer">The image layer to render, containing image data and transformation settings.</param>
+        /// <param name="canvas">The canvas on which the image layer will be drawn.</param>
+        private static SKRect DrawImageLayer(ImageLayer imageLayer, SKCanvas canvas)
         {
             // Decode bytes into an SKBitmap.
             using var bitmap = TryDecode(imageLayer.ImageBytes);
@@ -55,11 +65,30 @@ namespace InfinityRef.UI.Rendering
 
                 // Draw it.
                 canvas.DrawBitmap(bitmap, dest, paint);
+
+                if (imageLayer.IsSelected)
+                {
+                    DrawSelectionRectangle(canvas, dest);
+                }
                 canvas.Restore();
+
+                return dest; // Return the rectangle where the image was drawn.
             }
+
+            return SKRect.Empty; // Return an empty rectangle if the image could not be decoded.
+
         }
 
-        private static void DrawTextLayer(TextLayer layer, SKCanvas canvas)
+        /// <summary>
+        /// Renders a text layer onto the specified canvas.
+        /// </summary>
+        /// <remarks>The method uses the properties of the <paramref name="layer"/> parameter, such as
+        /// font family, font size, text alignment, and color, to configure the text rendering. The text is drawn
+        /// starting at the top-left corner of the canvas, with the baseline positioned at the font size
+        /// height.</remarks>
+        /// <param name="layer">The <see cref="TextLayer"/> object containing the text, font, color, and alignment information to be drawn.</param>
+        /// <param name="canvas">The <see cref="SKCanvas"/> on which the text will be rendered. This cannot be <see langword="null"/>.</param>
+        private static SKRect DrawTextLayer(TextLayer layer, SKCanvas canvas)
         {
             using var paint = new SKPaint
             {
@@ -77,15 +106,34 @@ namespace InfinityRef.UI.Rendering
                 _ => SKTextAlign.Left
             };
 
-            // 2) choose where to draw
-            //    here: top-left corner of canvas
             var x = 0f;
             var y = layer.FontSize;  // draw baseline at fontSize
+            var width = font.MeasureText(layer.Text, paint);
+            var height = layer.FontSize;
+            var boundingBoxPadding = 10f; // Padding around the text bounding box
 
-            // 3) draw it
+            // Define the destination rectangle for the text.
+            var dest = new SKRect(0, 0, width + 2 * boundingBoxPadding, height + 2 * boundingBoxPadding);
             canvas.DrawText(layer.Text, x, y, align, font, paint);
+
+            if (layer.IsSelected)
+            {
+                // Draw selection rectangle around the text.
+                DrawSelectionRectangle(canvas, dest);
+            }
+
+            return dest;
         }
 
+
+        /// <summary>
+        /// Attempts to decode a byte array into an <see cref="SKBitmap"/> image.
+        /// </summary>
+        /// <remarks>This method returns <see langword="null"/> if the provided byte array does not
+        /// contain valid image data or if the decoding process fails due to invalid input.</remarks>
+        /// <param name="bytes">The byte array containing the image data to decode. Must not be <see langword="null"/>.</param>
+        /// <returns>An <see cref="SKBitmap"/> representing the decoded image if the operation succeeds; otherwise, <see
+        /// langword="null"/>.</returns>
         static SKBitmap? TryDecode(byte[] bytes)
         {
             try
@@ -97,6 +145,41 @@ namespace InfinityRef.UI.Rendering
                 // Codec was null → not an image.
                 return null;
             }
+        }
+
+
+        /// <summary>
+        /// Draws a selection rectangle on the specified canvas using a purple border.
+        /// </summary>
+        /// <remarks>The selection rectangle is drawn with a purple stroke, a width of 4 pixels, and
+        /// anti-aliasing enabled.</remarks>
+        /// <param name="canvas">The <see cref="SKCanvas"/> on which the selection rectangle will be drawn. Cannot be <see langword="null"/>.</param>
+        /// <param name="dest">The <see cref="SKRect"/> defining the bounds of the selection rectangle.</param>
+        private static void DrawSelectionRectangle(SKCanvas canvas, SKRect dest)
+        {
+            var skPrimary = SKColors.Purple; // Default color if not found in resources.
+
+            var theme = Application.Current?.RequestedTheme;
+            var colorResource = theme == AppTheme.Dark ? "PrimaryDark" : "Primary";
+
+            if (Application.Current?.Resources?.TryGetValue(colorResource, out var res) == true && res is Color primaryColor)
+            {
+                skPrimary = new SKColor(
+                    (byte)(primaryColor.Red * 255),
+                    (byte)(primaryColor.Green * 255),
+                    (byte)(primaryColor.Blue * 255),
+                    (byte)(primaryColor.Alpha * 255));
+            }
+
+            using var borderPaint = new SKPaint
+            {
+                Style = SKPaintStyle.Stroke,
+                Color = skPrimary,
+                StrokeWidth = 4,
+                IsAntialias = true
+            };
+
+            canvas.DrawRect(dest, borderPaint);
         }
     }
 }

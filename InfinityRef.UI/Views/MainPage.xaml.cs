@@ -25,6 +25,9 @@ namespace InfinityRef
         private readonly IDragDropService dragDropService;
         private readonly INavigationService navigationService;
 
+        List<(Layer layer, SKRect bounds)> hitTestBuffer = new();
+        SKPoint lastTapPoint;
+
         public MainPage(MainViewModel viewModel, INavigationService navigationService, IDragDropService dragDropService)
         {
             InitializeComponent();
@@ -127,9 +130,78 @@ namespace InfinityRef
             var canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Transparent);
 
+            hitTestBuffer.Clear();
+
+            // Draw each layer and stash its rectangle for hit testing.
             foreach (var layer in mainViewModel.CurrentCanvas.Layers)
             {
-                LayerRenderer.Draw(layer, canvas);
+                var bounds = LayerRenderer.Draw(layer, canvas);
+                hitTestBuffer.Add((layer, bounds));
+            }
+        }
+
+        /// <summary>
+        /// Handles touch events on the canvas.
+        /// </summary>
+        /// <remarks>This method processes touch events and updates the last tap location when the touch
+        /// action is a press. The event is marked as handled to prevent further propagation.</remarks>
+        /// <param name="sender">The source of the touch event, typically the canvas.</param>
+        /// <param name="e">The touch event arguments containing details about the touch action.</param>
+        private void OnCanvasTouch(object sender, SKTouchEventArgs e)
+        {
+            if (e.ActionType == SKTouchAction.Pressed)
+            {
+                lastTapPoint = e.Location;
+            }
+
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Handles the tap event on the canvas at the specified point.
+        /// </summary>
+        /// <param name="point">The location of the tap on the canvas, represented as an <see cref="SKPoint"/>.</param>
+        private void OnCanvasTapped(object sender, EventArgs e)
+        {
+            HandleHitTest(lastTapPoint);
+        }
+
+        private void HandleHitTest(SKPoint lastTapPoint)
+        {
+            var hit = false;
+
+            foreach (var (layer, bounds) in hitTestBuffer.AsEnumerable().Reverse())
+            {
+                if (bounds.Contains(lastTapPoint))
+                {
+                    SelectLayer(layer);
+                    hit = true;
+                    CanvasView.InvalidateSurface(); // Refresh the canvas to reflect the selection.
+                    return;
+                }
+            }
+
+            if (!hit)
+            {
+                DeselectAll();
+                CanvasView.InvalidateSurface();
+            }
+        }
+
+
+        private void SelectLayer(Layer layer)
+        {
+            layer.IsSelected = true;
+            mainViewModel.CurrentCanvas.Layers.Where(l => l != layer) // Deselect all other layers
+                .ToList()
+                .ForEach(l => l.IsSelected = false);
+        }
+
+        private void DeselectAll()
+        {
+            foreach (var (layer, _) in hitTestBuffer)
+            {
+                layer.IsSelected = false;
             }
         }
     }
