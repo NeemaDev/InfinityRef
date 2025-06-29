@@ -1,4 +1,5 @@
-﻿using InfinityRef.UI.Interfaces;
+﻿using InfinityRef.Core.Models;
+using InfinityRef.UI.Interfaces;
 
 namespace InfinityRef.UI.Services
 {
@@ -9,7 +10,7 @@ namespace InfinityRef.UI.Services
             throw new NotImplementedException();
         }
 
-        public Task<(bool Success, byte[]? ImageData)> HandleDropAsync(DropEventArgs e)
+        Task<(bool Success, byte[]? ImageData, Position2D DropPoint)> IDragDropService.HandleDropAsync(DropEventArgs e)
         {
             throw new NotImplementedException();
         }

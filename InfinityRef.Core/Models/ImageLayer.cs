@@ -2,9 +2,10 @@
 {
     public class ImageLayer : Layer
     {
-        public ImageLayer(byte[] bytes)
+        public ImageLayer(byte[] bytes, Position2D position)
         {
             ImageBytes = bytes;
+            Position = position;
         }
 
         public byte[] ImageBytes { get; set; }

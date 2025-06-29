@@ -1,8 +1,10 @@
-﻿namespace InfinityRef.UI.Interfaces
+﻿using InfinityRef.Core.Models;
+
+namespace InfinityRef.UI.Interfaces
 {
     public interface IDragDropService
     {
-        Task<(bool Success, byte[]? ImageData)> HandleDropAsync(DropEventArgs e);
+        Task<(bool Success, byte[]? ImageData, Position2D DropPoint)> HandleDropAsync(DropEventArgs e);
         Task<(bool IsValid, string Source)> AnalyzeDragOverAsync(DragEventArgs e);
 
 

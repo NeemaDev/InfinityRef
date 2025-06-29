@@ -2,8 +2,7 @@
 {
     public abstract class Layer
     {
-        private string Id { get; set; }
-        private bool IsVisible { get; set; }
+        public Position2D Position { get; set; }
         public bool IsSelected { get; set; }
     }
 }

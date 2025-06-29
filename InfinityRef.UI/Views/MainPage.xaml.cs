@@ -73,7 +73,7 @@ namespace InfinityRef
             }
             else
             {
-                await mainViewModel.HandleDrop(result.ImageData);
+                await mainViewModel.HandleDrop(result.ImageData, result.DropPoint);
                 CanvasView.InvalidateSurface(); // Triggers skisharps repaint routine.
             }
 

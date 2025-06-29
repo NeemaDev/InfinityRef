@@ -4,8 +4,9 @@ namespace InfinityRef.Core.Models
 {
     public class TextLayer : Layer
     {
-        public TextLayer(string text, ColorData color, float fontSize, string fontFamily, HorizontalTextAlignment textAlign)
+        public TextLayer(Position2D position, string text, ColorData color, float fontSize, string fontFamily, HorizontalTextAlignment textAlign)
         {
+            Position = position;
             Text = text;
             Color = color;
             FontSize = fontSize;

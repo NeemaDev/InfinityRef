@@ -1,4 +1,6 @@
-﻿using InfinityRef.UI.Interfaces;
+﻿using InfinityRef.Core.Models;
+using InfinityRef.UI.Interfaces;
+using Microsoft.UI.Xaml;
 using System.Text.RegularExpressions;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -26,15 +28,26 @@ namespace InfinityRef.UI.Platforms.Windows
         /// <param name="dropEvent">The event arguments containing information about the drop operation.</param>
         /// <returns>A tuple containing a boolean indicating success and a byte array with the image data if successful;
         /// otherwise, <see langword="null"/>.</returns>
-        public async Task<(bool Success, byte[]? ImageData)> HandleDropAsync(DropEventArgs dropEvent)
+        public async Task<(bool Success, byte[]? ImageData, Position2D DropPoint)> HandleDropAsync(DropEventArgs dropEvent)
         {
-            var dataPackageView = dropEvent.PlatformArgs?.DragEventArgs?.DataView;
+            var nativeArgs = dropEvent.PlatformArgs?.DragEventArgs;
+            var dataPackageView = nativeArgs?.DataView;
             if (dataPackageView == null)
             {
-                return (false, null);
+                return (false, null, Position2D.Empty);
             }
 
             var formats = dataPackageView.AvailableFormats;
+
+            // Get drop point in screen coordinates.
+            var uiElement = dropEvent.PlatformArgs?.Sender;
+            var point = nativeArgs?.GetPosition(uiElement);
+            var dropPoint = Position2D.Empty;
+
+            if (point.HasValue)
+            {
+                dropPoint = new Position2D((float)point.Value.X, (float)point.Value.Y);
+            }
 
             // Handle URI‐drop (browser/outlook).
             if (formats.Contains(StandardDataFormats.Uri) || formats.Contains("UniformResourceLocator"))
@@ -48,19 +61,19 @@ namespace InfinityRef.UI.Platforms.Windows
                         // Ensure the URL is well-formed and absolute.
                         if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
                         {
-                            return (false, null);
+                            return (false, null, dropPoint);
                         }
                         // Attempt to fetch the image data from the URL.
                         using var client = httpClientFactory.CreateClient("ImageClient");
                         var bytes = await client.GetByteArrayAsync(url);
-                        return (true, bytes);
+                        return (true, bytes, dropPoint);
                     }
 
                     if (!string.IsNullOrWhiteSpace(url))
                     {
                         using var client = httpClientFactory.CreateClient("ImageClient");
                         using var stream = await client.GetStreamAsync(url);
-                        return (true, await ReadAllBytesAsync(stream));
+                        return (true, await ReadAllBytesAsync(stream), dropPoint);
                     }
                 }
                 catch { }
@@ -79,7 +92,7 @@ namespace InfinityRef.UI.Platforms.Windows
                     {
                         using var client = httpClientFactory.CreateClient("ImageClient");
                         using var stream = await client.GetStreamAsync(img.Groups["u"].Value);
-                        return (true, await ReadAllBytesAsync(stream));
+                        return (true, await ReadAllBytesAsync(stream), dropPoint);
                     }
                 }
                 catch { }
@@ -98,13 +111,13 @@ namespace InfinityRef.UI.Platforms.Windows
                     if (storageFile != null)
                     {
                         using var read = await storageFile.OpenReadAsync();
-                        return (true, await ReadAllBytesAsync(read.AsStreamForRead()));
+                        return (true, await ReadAllBytesAsync(read.AsStreamForRead()), dropPoint);
                     }
                 }
                 catch { }
             }
 
-            return (false, null);
+            return (false, null, dropPoint);
         }
 
         /// <summary>
@@ -118,7 +131,7 @@ namespace InfinityRef.UI.Platforms.Windows
         /// operation contains valid data; otherwise, <see langword="false"/>.</description></item> <item><term>A <see
         /// cref="string"/></term><description>representing the source of the drag data, such as a URL or file path.
         /// Returns an empty string if the data is invalid.</description></item> </list> </returns>
-        public async Task<(bool IsValid, string Source)> AnalyzeDragOverAsync(DragEventArgs dragEvent)
+        public async Task<(bool IsValid, string Source)> AnalyzeDragOverAsync(Microsoft.Maui.Controls.DragEventArgs dragEvent)
         {
             var dataPackageView = dragEvent.PlatformArgs?.DragEventArgs?.DataView;
 

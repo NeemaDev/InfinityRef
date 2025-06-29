@@ -1,5 +1,6 @@
 ﻿using InfinityRef.Core.Models;
 using SkiaSharp;
+using System.Diagnostics;
 
 namespace InfinityRef.UI.Rendering
 {
@@ -11,10 +12,8 @@ namespace InfinityRef.UI.Rendering
             {
                 case ImageLayer imageLayer:
                     return DrawImageLayer(imageLayer, canvas);
-                    break;
                 case TextLayer textLayer:
                     return DrawTextLayer(textLayer, canvas);
-                    break;
                 default:
                     return SKRect.Empty; // Unsupported layer type, do nothing.
 
@@ -38,8 +37,10 @@ namespace InfinityRef.UI.Rendering
             using var bitmap = TryDecode(imageLayer.ImageBytes);
             if (bitmap != null)
             {
-                // Determine destination rectangle (here: top-left at 0,0)
-                var dest = new SKRect(0, 0, bitmap.Width, bitmap.Height);
+                // Determine destination rectangle. SKRect uses left, top, right, bottom coordinates.
+                var dest = new SKRect(imageLayer.Position.X, imageLayer.Position.Y, imageLayer.Position.X + bitmap.Width, imageLayer.Position.X + bitmap.Height);
+                Debug.WriteLine($"Drawing image at {imageLayer.Position} with size {bitmap.Width}x{bitmap.Height}");
+                Debug.WriteLine($"Destination rectangle: {dest}");
 
                 // Apply grayscale or other effects.
                 using var paint = new SKPaint();

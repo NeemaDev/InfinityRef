@@ -38,9 +38,9 @@ namespace InfinityRef.UI.ViewModels
         /// completed task to support asynchronous workflows.</remarks>
         /// <param name="imageData">The image data in byte array format to be used for creating the new layer. Cannot be null or empty.</param>
         /// <returns>A completed <see cref="Task"/> representing the asynchronous operation.</returns>
-        public Task HandleDrop(byte[] imageData)
+        public Task HandleDrop(byte[] imageData, Position2D dropPoint)
         {
-            var layer = new ImageLayer(imageData);
+            var layer = new ImageLayer(imageData, dropPoint);
             CurrentCanvas.AddLayer(layer);
 
             Debug.WriteLine("Layer added. Total layers: " + CurrentCanvas.LayerCount);
