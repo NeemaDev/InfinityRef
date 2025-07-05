@@ -151,6 +151,60 @@ namespace InfinityRef
                 var bounds = LayerRenderer.Draw(layer, canvas);
                 hitTestBuffer.Add((layer, bounds));
             }
+
+            DrawRulers(canvas, e.Info.Width, e.Info.Height);
+        }
+
+        private void DrawRulers(SKCanvas canvas, int width, int height)
+        {
+            const float spacing = 50;   // 50px between ticks
+            const float tickLen = 10;   // tick length in px
+            const float textSize = 12;   // font size in px
+            const float textGap = 2;    // gap between tick end and text
+
+            using var tickPaint = new SKPaint
+            {
+                Color = SKColors.DarkGray,
+                StrokeWidth = 1,
+                IsAntialias = true
+            };
+
+            using var typeface = SKTypeface.Default;
+            using var font = new SKFont(typeface, textSize);
+
+            var align = SKTextAlign.Left;
+
+            //  -- horizontal ticks + labels along the top edge --
+            for (float x = 0; x <= width; x += spacing)
+            {
+                // draw the tick
+                canvas.DrawLine(x, 0, x, tickLen, tickPaint);
+
+                // label = the pixel-x coordinate
+                var label = ((int)x).ToString();
+
+                // draw centered under the tick
+                float textX = x;
+                float textY = tickLen + textGap + textSize;
+                canvas.DrawText(label, textX, textY, align, font, tickPaint);
+            }
+
+            //  -- vertical ticks + labels along the left edge --
+            // align text to left so we offset by half the text width
+            for (float y = 0; y <= height; y += spacing)
+            {
+                // draw the tick
+                canvas.DrawLine(0, y, tickLen, y, tickPaint);
+
+                // label = the pixel-y coordinate
+                var label = ((int)y).ToString();
+
+                // draw beside the tick, vertically centered on the line
+                float textX = tickLen + textGap;
+                // we offset baseline so text sits −(textSize/2) above the y
+                float textY = y + (textSize / 2);
+                canvas.DrawText(label, textX, textY, align, font, tickPaint);
+            }
         }
 
         /// <summary>
