@@ -1,6 +1,5 @@
 ﻿using InfinityRef.Core.Models;
 using SkiaSharp;
-using System.Diagnostics;
 
 namespace InfinityRef.UI.Rendering
 {
@@ -38,9 +37,7 @@ namespace InfinityRef.UI.Rendering
             if (bitmap != null)
             {
                 // Determine destination rectangle. SKRect uses left, top, right, bottom coordinates.
-                var dest = new SKRect(imageLayer.Position.X, imageLayer.Position.Y, imageLayer.Position.X + bitmap.Width, imageLayer.Position.X + bitmap.Height);
-                Debug.WriteLine($"Drawing image at {imageLayer.Position} with size {bitmap.Width}x{bitmap.Height}");
-                Debug.WriteLine($"Destination rectangle: {dest}");
+                var dest = new SKRect(imageLayer.Position.X, imageLayer.Position.Y, imageLayer.Position.X + bitmap.Width, imageLayer.Position.Y + bitmap.Height);
 
                 // Apply grayscale or other effects.
                 using var paint = new SKPaint();

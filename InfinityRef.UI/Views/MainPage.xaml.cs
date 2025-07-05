@@ -160,7 +160,6 @@ namespace InfinityRef
         /// <summary>
         /// Handles the tap event on the canvas at the specified point.
         /// </summary>
-        /// <param name="point">The location of the tap on the canvas, represented as an <see cref="SKPoint"/>.</param>
         private void OnCanvasTapped(object sender, EventArgs e)
         {
             HandleHitTest(lastTapPoint);
