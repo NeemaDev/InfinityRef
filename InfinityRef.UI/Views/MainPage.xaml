@@ -13,7 +13,8 @@
                                            DragOver="DragOver"
                                            Drop="OnDrop" />
                     <PanGestureRecognizer PanUpdated="OnPanUpdated" />
-                </ContentView.GestureRecognizers>
+                <PinchGestureRecognizer PinchUpdated="OnPinchUpdated"/>
+            </ContentView.GestureRecognizers>
 
                 <skia:SKCanvasView x:Name="CanvasView"                              
                                    PaintSurface="OnPaintSurface" 

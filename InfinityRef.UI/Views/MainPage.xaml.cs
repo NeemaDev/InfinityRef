@@ -28,6 +28,12 @@ namespace InfinityRef
         List<(Layer layer, SKRect bounds)> hitTestBuffer = new();
         SKPoint lastTapPoint;
 
+        // Zoom and pan state variables.
+        float currentScale = 1f;
+        float startScale = 1f;
+        SKPoint canvasTranslate = new SKPoint(0, 0);
+        SKPoint startTranslate = new SKPoint(0, 0);
+
         public MainPage(MainViewModel viewModel, INavigationService navigationService, IDragDropService dragDropService)
         {
             InitializeComponent();
@@ -38,6 +44,7 @@ namespace InfinityRef
 
             // Subscribe to canvas changes.
             navigationService.ActiveCanvasChanged += (_, __) => HookCanvas(navigationService.ActiveCanvas);
+            CanvasView.HandlerChanged += OnHandlerChanged;
 
             // Set the first canvas.
             HookCanvas(navigationService.ActiveCanvas);
@@ -132,6 +139,12 @@ namespace InfinityRef
 
             hitTestBuffer.Clear();
 
+            // Move origin by panning.
+            canvas.Translate(canvasTranslate.X, canvasTranslate.Y);
+
+            // Apply zoom.
+            canvas.Scale(currentScale, currentScale);
+
             // Draw each layer and stash its rectangle for hit testing.
             foreach (var layer in mainViewModel.CurrentCanvas.Layers)
             {
@@ -165,6 +178,81 @@ namespace InfinityRef
             HandleHitTest(lastTapPoint);
         }
 
+        private void OnHandlerChanged(object? sender, EventArgs e)
+        {
+            // On Windows, the PlatformView is a WinUI UIElement
+#if WINDOWS
+            if (CanvasView?.Handler?.PlatformView is Microsoft.UI.Xaml.UIElement uiElem)
+            {
+                uiElem.PointerWheelChanged += OnPointerWheelChanged;
+            }
+#endif
+        }
+
+#if WINDOWS
+        private void OnPointerWheelChanged(object? sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        {
+            // Get wheel delte (positve for zoom in, negative for zoom out).
+            var delta = e.GetCurrentPoint(null).Properties.MouseWheelDelta;
+            var zoomFactor = delta > 0 ? 1.1f : 0.9f;
+
+            var pointer = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender)?.Position;
+            
+            if(pointer.HasValue){
+                var x = (float)pointer.Value.X;
+                var y = (float)pointer.Value.Y;
+
+                currentScale = Math.Clamp(currentScale * zoomFactor, 0.5f, 4f);
+                canvasTranslate.X = (canvasTranslate.X - x) * zoomFactor + x;
+                canvasTranslate.Y = (canvasTranslate.Y - y) * zoomFactor + y;
+                CanvasView.InvalidateSurface();
+            }
+
+            e.Handled = true; // Mark the event as handled to prevent further propagation.
+        }
+#endif
+
+        private void OnPinchUpdated(object sender, PinchGestureUpdatedEventArgs e)
+        {
+            switch (e.Status)
+            {
+                case GestureStatus.Started:
+                    // Rememer the initial scale and translation.
+                    startScale = currentScale;
+                    startTranslate = canvasTranslate;
+                    break;
+                case GestureStatus.Running:
+                    // Caclulate the new scale based on the pinch gesture.
+                    var newScale = startScale * e.Scale;
+                    currentScale = (float)Math.Clamp(newScale, 0.5f, 4f);
+
+                    // Calculate the new translation based on the pinch center and scale origin.
+                    var viewSize = CanvasView.CanvasSize;
+                    var pinchCenter = new SKPoint((float)(viewSize.Width * e.ScaleOrigin.X), (float)(viewSize.Height * e.ScaleOrigin.Y));
+
+                    var dx = pinchCenter.X * (1 - currentScale);
+                    var dy = pinchCenter.Y * (1 - currentScale);
+
+                    canvasTranslate = new SKPoint(startTranslate.X + dx, startTranslate.Y + dy);
+
+                    CanvasView.InvalidateSurface(); // Refresh the canvas to apply the new scale and translation.
+                    break;
+                case GestureStatus.Completed:
+                    break;
+                case GestureStatus.Canceled:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Handles a hit test operation to determine whether a user tap intersects with any layers.
+        /// </summary>
+        /// <remarks>This method checks the layers in reverse order of their addition to determine if the
+        /// tap intersects with their bounds. If a layer is hit, it is selected, and the canvas is refreshed to reflect
+        /// the selection. If no layers are hit, all selections are cleared, and the canvas is refreshed.</remarks>
+        /// <param name="lastTapPoint">The point where the user last tapped, represented as an <see cref="SKPoint"/>.</param>
         private void HandleHitTest(SKPoint lastTapPoint)
         {
             var hit = false;
