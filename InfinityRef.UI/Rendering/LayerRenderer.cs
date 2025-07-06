@@ -1,18 +1,19 @@
 ﻿using InfinityRef.Core.Models;
 using SkiaSharp;
+using System.Diagnostics;
 
 namespace InfinityRef.UI.Rendering
 {
     public static class LayerRenderer
     {
-        public static SKRect Draw(Layer layer, SKCanvas canvas)
+        public static SKRect Draw(Layer layer, SKCanvas canvas, (float, float) scaleFactors)
         {
             switch (layer)
             {
                 case ImageLayer imageLayer:
-                    return DrawImageLayer(imageLayer, canvas);
+                    return DrawImageLayer(imageLayer, canvas, scaleFactors);
                 case TextLayer textLayer:
-                    return DrawTextLayer(textLayer, canvas);
+                    return DrawTextLayer(textLayer, canvas, scaleFactors);
                 default:
                     return SKRect.Empty; // Unsupported layer type, do nothing.
 
@@ -30,14 +31,18 @@ namespace InfinityRef.UI.Rendering
         /// as selected, a selection rectangle is drawn around the image.</remarks>
         /// <param name="imageLayer">The image layer to render, containing image data and transformation settings.</param>
         /// <param name="canvas">The canvas on which the image layer will be drawn.</param>
-        private static SKRect DrawImageLayer(ImageLayer imageLayer, SKCanvas canvas)
+        private static SKRect DrawImageLayer(ImageLayer imageLayer, SKCanvas canvas, (float x, float y) scaleFactors)
         {
             // Decode bytes into an SKBitmap.
             using var bitmap = TryDecode(imageLayer.ImageBytes);
             if (bitmap != null)
             {
                 // Determine destination rectangle. SKRect uses left, top, right, bottom coordinates.
-                var dest = new SKRect(imageLayer.Position.X, imageLayer.Position.Y, imageLayer.Position.X + bitmap.Width, imageLayer.Position.Y + bitmap.Height);
+                var scaledX = imageLayer.Position.X * scaleFactors.x;
+                var scaledY = imageLayer.Position.Y * scaleFactors.y;
+
+                var dest = new SKRect(scaledX, scaledY, scaledX + bitmap.Width, scaledY + bitmap.Height);
+                Debug.WriteLine($"Drawing image at {imageLayer.Position} with size {bitmap.Width}x{bitmap.Height}");
 
                 // Apply grayscale or other effects.
                 using var paint = new SKPaint();
@@ -86,7 +91,7 @@ namespace InfinityRef.UI.Rendering
         /// height.</remarks>
         /// <param name="layer">The <see cref="TextLayer"/> object containing the text, font, color, and alignment information to be drawn.</param>
         /// <param name="canvas">The <see cref="SKCanvas"/> on which the text will be rendered. This cannot be <see langword="null"/>.</param>
-        private static SKRect DrawTextLayer(TextLayer layer, SKCanvas canvas)
+        private static SKRect DrawTextLayer(TextLayer layer, SKCanvas canvas, (float x, float y) scaleFactors)
         {
             using var paint = new SKPaint
             {
@@ -111,7 +116,10 @@ namespace InfinityRef.UI.Rendering
             var boundingBoxPadding = 10f; // Padding around the text bounding box
 
             // Define the destination rectangle for the text.
-            var dest = new SKRect(0, 0, width + 2 * boundingBoxPadding, height + 2 * boundingBoxPadding);
+            var scaledX = layer.Position.X * scaleFactors.x;
+            var scaledY = layer.Position.Y * scaleFactors.y;
+
+            var dest = new SKRect(scaledX, scaledY, width + 2 * boundingBoxPadding, height + 2 * boundingBoxPadding);
             canvas.DrawText(layer.Text, x, y, align, font, paint);
 
             if (layer.IsSelected)

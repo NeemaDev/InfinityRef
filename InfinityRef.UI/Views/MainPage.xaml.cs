@@ -139,6 +139,12 @@ namespace InfinityRef
 
             hitTestBuffer.Clear();
 
+            // Calculate pixel-per-dip factors.
+            var viewWidthDip = (float)CanvasView.Width;
+            var viewHeightDip = (float)CanvasView.Height;
+            float pixelPerDipX = (viewWidthDip > 0) ? e.Info.Width / viewWidthDip : 1f;
+            float pixelPerDipY = (viewHeightDip > 0) ? e.Info.Height / viewHeightDip : 1f;
+
             // Move origin by panning.
             canvas.Translate(canvasTranslate.X, canvasTranslate.Y);
 
@@ -148,10 +154,11 @@ namespace InfinityRef
             // Draw each layer and stash its rectangle for hit testing.
             foreach (var layer in mainViewModel.CurrentCanvas.Layers)
             {
-                var bounds = LayerRenderer.Draw(layer, canvas);
+                var bounds = LayerRenderer.Draw(layer, canvas, (pixelPerDipX, pixelPerDipY));
                 hitTestBuffer.Add((layer, bounds));
             }
 
+            // only temporary.
             DrawRulers(canvas, e.Info.Width, e.Info.Height);
         }
 

@@ -1,6 +1,7 @@
 ﻿using InfinityRef.Core.Models;
 using InfinityRef.UI.Interfaces;
 using Microsoft.UI.Xaml;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
@@ -48,6 +49,8 @@ namespace InfinityRef.UI.Platforms.Windows
             {
                 dropPoint = new Position2D((float)point.Value.X, (float)point.Value.Y);
             }
+
+            Debug.WriteLine($"Drop point (device pixels): {dropPoint}");
 
             // Handle URI‐drop (browser/outlook).
             if (formats.Contains(StandardDataFormats.Uri) || formats.Contains("UniformResourceLocator"))
