@@ -10,6 +10,11 @@ namespace InfinityRef.Core.Models
             Layers.CollectionChanged += OnLayersChanged;
         }
 
+        public double MinX { get; set; } = 0;
+        public double MaxX { get; set; } = 0;
+        public double MinY { get; set; } = 0;
+        public double MaxY { get; set; } = 0;
+
         public ObservableCollection<Layer> Layers { get; } = new ObservableCollection<Layer>();
         public int LayerCount => Layers.Count;
 
@@ -25,7 +30,18 @@ namespace InfinityRef.Core.Models
 
         private void OnLayersChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            // Just in case, if need to handle extra stuff.
+            if (Layers.Count == 0)
+            {
+                MinX = MinY = MaxX = MaxY = 0;
+                {
+                    return;
+                }
+            }
+
+            MinX = Layers.Min(l => l.Position.X);
+            MinY = Layers.Min(l => l.Position.Y);
+            MaxX = Layers.Max(l => l.Position.X);
+            MaxY = Layers.Max(l => l.Position.Y);
         }
 
     }

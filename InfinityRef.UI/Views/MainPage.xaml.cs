@@ -44,7 +44,7 @@ namespace InfinityRef
 
             // Subscribe to canvas changes.
             navigationService.ActiveCanvasChanged += (_, __) => HookCanvas(navigationService.ActiveCanvas);
-            CanvasView.HandlerChanged += OnHandlerChanged;
+            CanvasView.HandlerChanged += OnHandlerChanged; // Triggered when view is created, controll is added/removed, orientation change, theme change, etc.
 
             // Set the first canvas.
             HookCanvas(navigationService.ActiveCanvas);
@@ -78,12 +78,38 @@ namespace InfinityRef
             {
                 return;
             }
-            else
+
+            // Convert drop point to canvas coordinates
+            var devicePoint = new SKPoint(result.DropPoint.X, result.DropPoint.Y);
+            var canvasPoint = DeviceToCanvas(devicePoint);
+
+            // Get current canvas bounds
+            var canvas = mainViewModel.CurrentCanvas;
+            float minX = 0, minY = 0, maxX = 0, maxY = 0;
+            if (canvas.Layers.Count > 0)
             {
-                await mainViewModel.HandleDrop(result.ImageData, result.DropPoint);
-                CanvasView.InvalidateSurface(); // Triggers skisharps repaint routine.
+                minX = canvas.Layers.Min(l => l.Position.X);
+                minY = canvas.Layers.Min(l => l.Position.Y);
+                maxX = canvas.Layers.Max(l => l.Position.X);
+                maxY = canvas.Layers.Max(l => l.Position.Y);
             }
 
+            // Assume image size
+            using var bitmap = SkiaSharp.SKBitmap.Decode(result.ImageData);
+            float imgWidth = bitmap?.Width ?? 0;
+            float imgHeight = bitmap?.Height ?? 0;
+
+            // Expand canvas bounds if needed
+            if (canvasPoint.X < minX) minX = canvasPoint.X;
+            if (canvasPoint.Y < minY) minY = canvasPoint.Y;
+            if (canvasPoint.X + imgWidth > maxX) maxX = canvasPoint.X + imgWidth;
+            if (canvasPoint.Y + imgHeight > maxY) maxY = canvasPoint.Y + imgHeight;
+
+            // Optionally, update your Canvas class to store and use these bounds
+
+            // Place the image at the drop point in canvas coordinates
+            await mainViewModel.HandleDrop(result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y));
+            CanvasView.InvalidateSurface();
         }
 
         /// <summary>
@@ -239,6 +265,14 @@ namespace InfinityRef
             HandleHitTest(lastTapPoint);
         }
 
+        /// <summary>
+        /// Handles changes to the handler associated with the <see cref="CanvasView"/>.
+        /// </summary>
+        /// <remarks>This method is triggered when the handler for the <see cref="CanvasView"/> changes.
+        /// On Windows, it attaches the <see langword="PointerWheelChanged"/> event to the platform-specific <see
+        /// cref="Microsoft.UI.Xaml.UIElement"/> associated with the handler.</remarks>
+        /// <param name="sender">The source of the event. This parameter may be <see langword="null"/>.</param>
+        /// <param name="e">An <see cref="EventArgs"/> instance containing the event data.</param>
         private void OnHandlerChanged(object? sender, EventArgs e)
         {
             // On Windows, the PlatformView is a WinUI UIElement
@@ -253,20 +287,27 @@ namespace InfinityRef
 #if WINDOWS
         private void OnPointerWheelChanged(object? sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
-            // Get wheel delte (positve for zoom in, negative for zoom out).
+            // Get wheel delta (positve for zoom in, negative for zoom out).
             var delta = e.GetCurrentPoint(null).Properties.MouseWheelDelta;
             var zoomFactor = delta > 0 ? 1.1f : 0.9f;
 
+            // Pointer position relative to canvas.
             var pointer = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender)?.Position;
             
             if(pointer.HasValue){
                 var x = (float)pointer.Value.X;
                 var y = (float)pointer.Value.Y;
 
-                currentScale = Math.Clamp(currentScale * zoomFactor, 0.5f, 4f);
-                canvasTranslate.X = (canvasTranslate.X - x) * zoomFactor + x;
-                canvasTranslate.Y = (canvasTranslate.Y - y) * zoomFactor + y;
-                CanvasView.InvalidateSurface();
+                var oldScale = currentScale;
+                var newScale = Math.Clamp(currentScale * zoomFactor, 1e-6f, 100f);
+
+                if (Math.Abs(newScale - oldScale) > float.Epsilon)
+                {
+                    currentScale = newScale;
+                    canvasTranslate.X = (canvasTranslate.X - x) * zoomFactor + x;
+                    canvasTranslate.Y = (canvasTranslate.Y - y) * zoomFactor + y;
+                    CanvasView.InvalidateSurface();
+                }
             }
 
             e.Handled = true; // Mark the event as handled to prevent further propagation.
@@ -336,6 +377,13 @@ namespace InfinityRef
             }
         }
 
+        private SKPoint DeviceToCanvas(SKPoint devicePoint)
+        {
+            // Reverse the translation and scaling applied in OnPaintSurface
+            var x = (devicePoint.X - canvasTranslate.X) / currentScale;
+            var y = (devicePoint.Y - canvasTranslate.Y) / currentScale;
+            return new SKPoint(x, y);
+        }
 
         private void SelectLayer(Layer layer)
         {
