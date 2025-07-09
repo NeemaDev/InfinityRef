@@ -11,7 +11,7 @@ using SkiaSharp.Views.Maui;
   using System.Runtime.InteropServices.WindowsRuntime;
   using Microsoft.Maui.ApplicationModel.DataTransfer;
   using System.Text.RegularExpressions;
-
+  using Microsoft.UI.Input;
 #elif MACCATALYST
   // macOS UIHostingController-based drag‐drop gives UniformTypeIdentifiers
   using UniformTypeIdentifiers;
@@ -21,9 +21,18 @@ namespace InfinityRef
 {
     public partial class MainPage : ContentPage
     {
+#if WINDOWS
+        private bool isMousePanning = false;
+        private bool isSpaceDown = false;
+        private SKPoint mousePanStart;
+        private SKPoint mousePanOrigin;
+#endif
+
         private readonly MainViewModel mainViewModel;
         private readonly IDragDropService dragDropService;
         private readonly INavigationService navigationService;
+        private Dictionary<long, SKPoint> activeTouches = new();
+        private bool isTouchPanning = false;
 
         List<(Layer layer, SKRect bounds)> hitTestBuffer = new();
         SKPoint lastTapPoint;
@@ -249,6 +258,45 @@ namespace InfinityRef
         /// <param name="e">The touch event arguments containing details about the touch action.</param>
         private void OnCanvasTouch(object sender, SKTouchEventArgs e)
         {
+            if (e.InContact)
+            {
+                activeTouches[e.Id] = e.Location;
+            }
+            else
+            {
+                activeTouches.Remove(e.Id);
+            }
+
+            // Handle two finger panning.
+            if (activeTouches.Count == 2)
+            {
+                var points = activeTouches.Values.ToArray();
+                if (!isTouchPanning)
+                {
+                    isTouchPanning = true;
+                    startTranslate = canvasTranslate;
+                }
+                // Calculate movement delta
+                var delta = points[0] - points[1];
+                var prevDelta = points[0] - points[1]; // You may want to store previous frame's points for smoother panning
+
+                // For simplicity, use the average movement of both fingers
+                var avgCurrent = new SKPoint((points[0].X + points[1].X) / 2, (points[0].Y + points[1].Y) / 2);
+                var avgStart = avgCurrent;
+
+                if (e.ActionType == SKTouchAction.Moved)
+                {
+                    var move = e.Location - lastTapPoint;
+                    canvasTranslate = new SKPoint(startTranslate.X + move.X, startTranslate.Y + move.Y);
+                    CanvasView.InvalidateSurface();
+                }
+            }
+            else
+            {
+                isTouchPanning = false;
+            }
+
+            // Handle "clicking" on the canvas with the finger.
             if (e.ActionType == SKTouchAction.Pressed)
             {
                 lastTapPoint = e.Location;
@@ -280,6 +328,19 @@ namespace InfinityRef
             if (CanvasView?.Handler?.PlatformView is Microsoft.UI.Xaml.UIElement uiElem)
             {
                 uiElem.PointerWheelChanged += OnPointerWheelChanged;
+                uiElem.PointerPressed += OnPointerPressed;
+                uiElem.PointerReleased += OnPointerReleased;
+                uiElem.PointerMoved += OnPointerMoved;
+                uiElem.KeyDown += OnKeyDown;
+                uiElem.KeyUp += OnKeyUp;
+
+                // Make focusable and set focus
+                uiElem.IsTabStop = true;
+                uiElem.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
+                uiElem.PointerEntered += (s, args) =>
+                {
+                    uiElem.Focus(Microsoft.UI.Xaml.FocusState.Pointer);
+                };
             }
 #endif
         }
@@ -400,5 +461,53 @@ namespace InfinityRef
                 layer.IsSelected = false;
             }
         }
+
+#if WINDOWS
+    private void OnPointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        var props = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender).Properties;
+        if (props.IsMiddleButtonPressed || (isSpaceDown && props.IsLeftButtonPressed))
+        {
+            isMousePanning = true;
+            var pos = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender).Position;
+            mousePanStart = new SKPoint((float)pos.X, (float)pos.Y);
+            mousePanOrigin = canvasTranslate;
+            ((Microsoft.UI.Xaml.UIElement)sender).CapturePointer(e.Pointer);
+            e.Handled = true;
+        }
+    }
+
+    private void OnPointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        isMousePanning = false;
+        ((Microsoft.UI.Xaml.UIElement)sender).ReleasePointerCapture(e.Pointer);
+        e.Handled = true;
+    }
+
+    private void OnPointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (isMousePanning)
+        {
+            var pos = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender).Position;
+            var delta = new SKPoint((float)pos.X - mousePanStart.X, (float)pos.Y - mousePanStart.Y);
+            canvasTranslate = new SKPoint(mousePanOrigin.X + delta.X, mousePanOrigin.Y + delta.Y);
+            CanvasView.InvalidateSurface();
+            e.Handled = true;
+        }
+    }
+
+    private void OnKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.Space)
+            isSpaceDown = true;
+    }
+
+    private void OnKeyUp(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key == Windows.System.VirtualKey.Space)
+            isSpaceDown = false;
+    }
+#endif
+
     }
 }
