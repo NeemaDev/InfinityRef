@@ -28,20 +28,32 @@ namespace InfinityRef.Core.Models
             Layers.Remove(layer);
         }
 
-        private void OnLayersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        public void UpdateBounds()
         {
-            if (Layers.Count == 0)
+            if (Layers.Count != 0)
+            {
+                MinX = Layers.Min(l => l.Position.X);
+                MinY = Layers.Min(l => l.Position.Y);
+                MaxX = Layers.Max(l => l.Position.X);
+                MaxY = Layers.Max(l => l.Position.Y);
+            }
+            else
             {
                 MinX = MinY = MaxX = MaxY = 0;
-                {
-                    return;
-                }
             }
+        }
 
-            MinX = Layers.Min(l => l.Position.X);
-            MinY = Layers.Min(l => l.Position.Y);
-            MaxX = Layers.Max(l => l.Position.X);
-            MaxY = Layers.Max(l => l.Position.Y);
+        public void UpdateBounds(float x, float y, float width, float height)
+        {
+            MinX = x < MinX ? x : MinX;
+            MinY = y < MinY ? y : MinY;
+            MaxX = x + width > MaxX ? x + width : MaxX;
+            MaxY = y + height > MaxY ? y + height : MaxY;
+        }
+
+        private void OnLayersChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            UpdateBounds();
         }
 
     }

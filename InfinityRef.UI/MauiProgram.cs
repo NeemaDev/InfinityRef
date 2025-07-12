@@ -45,6 +45,7 @@ namespace InfinityRef
             builder.Services.AddSingleton<IFilePicker, FilePickerService>();
             builder.Services.AddSingleton<INavigationService, NavigationService>();
             builder.Services.AddSingleton<ISaveLoadService, SaveAndLoadService>();
+            builder.Services.AddSingleton<DragDropService>();
 #if WINDOWS
             builder.Services.AddSingleton<IDragDropService, WindowsDragDropService>();
 #else

@@ -39,7 +39,10 @@ namespace InfinityRef
         List<(Layer layer, SKRect bounds)> hitTestBuffer = new();
         SKPoint lastTapPoint;
 
-        public MainPage(MainViewModel viewModel, INavigationService navigationService, IDragDropService dragDropService, CanvasInteractionService canvasInteractionService)
+        public MainPage(MainViewModel viewModel,
+                        INavigationService navigationService,
+                        DragDropService dragDropService,
+                        CanvasInteractionService canvasInteractionService)
         {
             InitializeComponent();
             BindingContext = viewModel;
@@ -79,42 +82,6 @@ namespace InfinityRef
         private async void OnDrop(object sender, DropEventArgs dropEvent)
         {
             var result = await dragDropService.HandleDropAsync(dropEvent);
-
-            if (!result.Success || result.ImageData is null)
-            {
-                return;
-            }
-
-            // Convert drop point to canvas coordinates
-            var devicePoint = new SKPoint(result.DropPoint.X, result.DropPoint.Y);
-            var canvasPoint = canvasInteractionService.DeviceToCanvas(devicePoint);
-
-            // Get current canvas bounds
-            var canvas = mainViewModel.CurrentCanvas;
-            float minX = 0, minY = 0, maxX = 0, maxY = 0;
-            if (canvas.Layers.Count > 0)
-            {
-                minX = canvas.Layers.Min(l => l.Position.X);
-                minY = canvas.Layers.Min(l => l.Position.Y);
-                maxX = canvas.Layers.Max(l => l.Position.X);
-                maxY = canvas.Layers.Max(l => l.Position.Y);
-            }
-
-            // Assume image size
-            using var bitmap = SkiaSharp.SKBitmap.Decode(result.ImageData);
-            float imgWidth = bitmap?.Width ?? 0;
-            float imgHeight = bitmap?.Height ?? 0;
-
-            // Expand canvas bounds if needed
-            if (canvasPoint.X < minX) minX = canvasPoint.X;
-            if (canvasPoint.Y < minY) minY = canvasPoint.Y;
-            if (canvasPoint.X + imgWidth > maxX) maxX = canvasPoint.X + imgWidth;
-            if (canvasPoint.Y + imgHeight > maxY) maxY = canvasPoint.Y + imgHeight;
-
-            // Optionally, update your Canvas class to store and use these bounds
-
-            // Place the image at the drop point in canvas coordinates
-            await mainViewModel.HandleDrop(result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y));
             CanvasView.InvalidateSurface();
         }
 
