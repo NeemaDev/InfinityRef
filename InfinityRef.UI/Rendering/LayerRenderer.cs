@@ -4,8 +4,24 @@ using System.Diagnostics;
 
 namespace InfinityRef.UI.Rendering
 {
+    /// <summary>
+    /// Provides functionality for rendering various types of layers onto a canvas.
+    /// </summary>
+    /// <remarks>The <see cref="LayerRenderer"/> class supports rendering different layer types, such as image
+    /// layers and text layers,  onto an <see cref="SKCanvas"/>. The appropriate rendering method is selected based on
+    /// the type of the provided layer. Unsupported layer types result in no rendering and return an empty
+    /// rectangle.</remarks>
     public static class LayerRenderer
     {
+        /// <summary>
+        /// Draws the specified layer onto the provided canvas, applying the given scale factors.
+        /// </summary>
+        /// <param name="layer">The layer to be drawn. Must be of a supported type, such as <see cref="ImageLayer"/> or <see
+        /// cref="TextLayer"/>.</param>
+        /// <param name="canvas">The canvas on which the layer will be drawn. Cannot be <see langword="null"/>.</param>
+        /// <param name="scaleFactors">A tuple containing the horizontal and vertical scale factors to apply during drawing.</param>
+        /// <returns>A <see cref="SKRect"/> representing the bounding rectangle of the drawn content.  Returns <see
+        /// cref="SKRect.Empty"/> if the layer type is unsupported or no content is drawn.</returns>
         public static SKRect Draw(Layer layer, SKCanvas canvas, (float, float) scaleFactors)
         {
             switch (layer)
@@ -16,10 +32,7 @@ namespace InfinityRef.UI.Rendering
                     return DrawTextLayer(textLayer, canvas, scaleFactors);
                 default:
                     return SKRect.Empty; // Unsupported layer type, do nothing.
-
             }
-
-
         }
 
         /// <summary>
@@ -53,7 +66,7 @@ namespace InfinityRef.UI.Rendering
                        .33f, .33f, .33f, 0, 0,
                        .33f, .33f, .33f, 0, 0,
                        .33f, .33f, .33f, 0, 0,
-                        0,    0,    0,   1, 0
+                       0, 0, 0, 1, 0,
                     });
                 }
 
@@ -73,13 +86,13 @@ namespace InfinityRef.UI.Rendering
                 {
                     DrawSelectionRectangle(canvas, dest);
                 }
+
                 canvas.Restore();
 
                 return dest; // Return the rectangle where the image was drawn.
             }
 
             return SKRect.Empty; // Return an empty rectangle if the image could not be decoded.
-
         }
 
         /// <summary>
@@ -119,7 +132,7 @@ namespace InfinityRef.UI.Rendering
             var scaledX = layer.Position.X * scaleFactors.x;
             var scaledY = layer.Position.Y * scaleFactors.y;
 
-            var dest = new SKRect(scaledX, scaledY, width + 2 * boundingBoxPadding, height + 2 * boundingBoxPadding);
+            var dest = new SKRect(scaledX, scaledY, width + (2 * boundingBoxPadding), height + (2 * boundingBoxPadding));
             canvas.DrawText(layer.Text, x, y, align, font, paint);
 
             if (layer.IsSelected)
@@ -131,7 +144,6 @@ namespace InfinityRef.UI.Rendering
             return dest;
         }
 
-
         /// <summary>
         /// Attempts to decode a byte array into an <see cref="SKBitmap"/> image.
         /// </summary>
@@ -140,7 +152,7 @@ namespace InfinityRef.UI.Rendering
         /// <param name="bytes">The byte array containing the image data to decode. Must not be <see langword="null"/>.</param>
         /// <returns>An <see cref="SKBitmap"/> representing the decoded image if the operation succeeds; otherwise, <see
         /// langword="null"/>.</returns>
-        static SKBitmap? TryDecode(byte[] bytes)
+        private static SKBitmap? TryDecode(byte[] bytes)
         {
             try
             {
@@ -152,7 +164,6 @@ namespace InfinityRef.UI.Rendering
                 return null;
             }
         }
-
 
         /// <summary>
         /// Draws a selection rectangle on the specified canvas using a purple border.
@@ -182,7 +193,7 @@ namespace InfinityRef.UI.Rendering
                 Style = SKPaintStyle.Stroke,
                 Color = skPrimary,
                 StrokeWidth = 4,
-                IsAntialias = true
+                IsAntialias = true,
             };
 
             canvas.DrawRect(dest, borderPaint);

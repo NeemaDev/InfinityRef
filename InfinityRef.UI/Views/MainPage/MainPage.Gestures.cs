@@ -9,7 +9,6 @@ namespace InfinityRef
         private bool isMousePanning = false;
         private bool isSpaceDown = false;
         private SKPoint mousePanStart;
-        private SKPoint mousePanOrigin;
 #endif
 
         private void OnPanUpdated(object sender, PanUpdatedEventArgs e)

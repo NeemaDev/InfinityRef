@@ -4,8 +4,9 @@ namespace InfinityRef.Core.Interfaces
 {
     public interface INavigationService
     {
-        Canvas ActiveCanvas { get; }
         event EventHandler? ActiveCanvasChanged;
+
+        Canvas ActiveCanvas { get; }
 
         void OpenCanvas(Canvas canvas);
         void OpenSubCanvas(CanvasContainer container);

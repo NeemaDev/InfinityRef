@@ -1,7 +1,5 @@
 ﻿#if WINDOWS
-  using Windows.Storage;                           // StorageFile
   using System.Runtime.InteropServices;
-  using System.Runtime.InteropServices.WindowsRuntime;
 #endif
 
 namespace InfinityRef

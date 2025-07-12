@@ -8,14 +8,23 @@ using Windows.Storage;
 
 namespace InfinityRef.UI.Platforms.Windows
 {
+    /// <summary>
+    /// Provides drag-and-drop functionality for Windows, including handling dropped content and analyzing drag
+    /// operations.
+    /// </summary>
     public class WindowsDragDropService : IDragDropService
     {
         private readonly List<string> supportedImageFormats = new List<string> { "png", "jpeg", "jpg", "gif", "bmp", "webp" };
+        private readonly IHttpClientFactory httpClientFactory;
 
-        readonly IHttpClientFactory httpClientFactory;
-
-        public WindowsDragDropService(IHttpClientFactory httpFactory)
-          => httpClientFactory = httpFactory;
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WindowsDragDropService"/> class.
+        /// </summary>
+        /// <param name="httpClientFactory">The <see cref="IHttpClientFactory"/> used to create HTTP clients for network operations.</param>
+        public WindowsDragDropService(IHttpClientFactory httpClientFactory)
+        {
+            this.httpClientFactory = httpClientFactory;
+        }
 
         /// <summary>
         /// Handles a drop event and attempts to retrieve image data from the dropped content.
@@ -66,6 +75,7 @@ namespace InfinityRef.UI.Platforms.Windows
                         {
                             return (false, null, dropPoint);
                         }
+
                         // Attempt to fetch the image data from the URL.
                         using var client = httpClientFactory.CreateClient("ImageClient");
                         var bytes = await client.GetByteArrayAsync(url);
@@ -79,7 +89,9 @@ namespace InfinityRef.UI.Platforms.Windows
                         return (true, await ReadAllBytesAsync(stream), dropPoint);
                     }
                 }
-                catch { }
+                catch
+                {
+                }
             }
 
             // Handle HTML‐drop (<img src="…">).
@@ -98,7 +110,9 @@ namespace InfinityRef.UI.Platforms.Windows
                         return (true, await ReadAllBytesAsync(stream), dropPoint);
                     }
                 }
-                catch { }
+                catch
+                {
+                }
             }
 
             // Handle drops from file explorer.
@@ -117,7 +131,9 @@ namespace InfinityRef.UI.Platforms.Windows
                         return (true, await ReadAllBytesAsync(read.AsStreamForRead()), dropPoint);
                     }
                 }
-                catch { }
+                catch
+                {
+                }
             }
 
             return (false, null, dropPoint);
@@ -172,20 +188,6 @@ namespace InfinityRef.UI.Platforms.Windows
             return (false, string.Empty);
         }
 
-
-        /// <summary>
-        /// Asynchronously reads all bytes from the specified stream and returns them as a byte array.
-        /// </summary>
-        /// <remarks>The method reads the entire content of the stream asynchronously into memory.</remarks>
-        /// <param name="stream">The input stream to read from. The stream must support reading.</param>
-        /// <returns>A byte array containing all the data read from the stream.</returns>
-        private async Task<byte[]> ReadAllBytesAsync(Stream stream)
-        {
-            using var memoryStream = new MemoryStream();
-            await stream.CopyToAsync(memoryStream);
-            return memoryStream.ToArray();
-        }
-
         /// <summary>
         /// Checks if the file type is supported for drag-and-drop operations.
         /// </summary>
@@ -198,7 +200,21 @@ namespace InfinityRef.UI.Platforms.Windows
                 var ext = Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
                 return supportedImageFormats.Contains(ext);
             }
+
             return false;
+        }
+
+        /// <summary>
+        /// Asynchronously reads all bytes from the specified stream and returns them as a byte array.
+        /// </summary>
+        /// <remarks>The method reads the entire content of the stream asynchronously into memory.</remarks>
+        /// <param name="stream">The input stream to read from. The stream must support reading.</param>
+        /// <returns>A byte array containing all the data read from the stream.</returns>
+        private async Task<byte[]> ReadAllBytesAsync(Stream stream)
+        {
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            return memoryStream.ToArray();
         }
     }
 }

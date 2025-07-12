@@ -4,11 +4,12 @@ namespace InfinityRef.UI.Services
 {
     public class CanvasInteractionService
     {
-        public float CurrentScale { get; private set; } = 1f;
-        public SKPoint CanvasTranslate { get; private set; } = new SKPoint(0, 0);
-
         private float startScale = 1f;
         private SKPoint startTranslate = new SKPoint(0, 0);
+
+        public float CurrentScale { get; private set; } = 1f;
+
+        public SKPoint CanvasTranslate { get; private set; } = new SKPoint(0, 0);
 
         /// <summary>
         /// Initializes a pinch gesture with the specified scale and translation values.
@@ -81,10 +82,7 @@ namespace InfinityRef.UI.Services
             if (Math.Abs(newScale - oldScale) > float.Epsilon)
             {
                 CurrentScale = newScale;
-                CanvasTranslate = new SKPoint(
-                    (CanvasTranslate.X - pointer.X) * zoomFactor + pointer.X,
-                    (CanvasTranslate.Y - pointer.Y) * zoomFactor + pointer.Y
-                );
+                CanvasTranslate = new SKPoint(((CanvasTranslate.X - pointer.X) * zoomFactor) + pointer.X, ((CanvasTranslate.Y - pointer.Y) * zoomFactor) + pointer.Y);
             }
         }
 

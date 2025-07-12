@@ -4,17 +4,6 @@ using InfinityRef.UI.Interfaces;
 using InfinityRef.UI.Services;
 using InfinityRef.UI.ViewModels;
 using SkiaSharp;
-#if WINDOWS
-  using Windows.Storage;                           // StorageFile
-  using System.Runtime.InteropServices;
-  using System.Runtime.InteropServices.WindowsRuntime;
-  using Microsoft.Maui.ApplicationModel.DataTransfer;
-  using System.Text.RegularExpressions;
-  using Microsoft.UI.Input;
-#elif MACCATALYST
-  // macOS UIHostingController-based drag‐drop gives UniformTypeIdentifiers
-  using UniformTypeIdentifiers;
-#endif
 
 namespace InfinityRef
 {
@@ -24,11 +13,11 @@ namespace InfinityRef
         private readonly IDragDropService dragDropService;
         private readonly INavigationService navigationService;
         private readonly CanvasInteractionService canvasInteractionService;
-        private Dictionary<long, SKPoint> activeTouches = new();
+        private Dictionary<long, SKPoint> activeTouches = new Dictionary<long, SKPoint>();
         private bool isTouchPanning = false;
 
-        List<(Layer layer, SKRect bounds)> hitTestBuffer = new();
-        SKPoint lastTapPoint;
+        private List<(Layer layer, SKRect bounds)> hitTestBuffer = new List<(Layer layer, SKRect bounds)>();
+        private SKPoint lastTapPoint;
 
         public MainPage(MainViewModel viewModel,
                         INavigationService navigationService,
@@ -53,7 +42,7 @@ namespace InfinityRef
         /// <summary>
         /// Associates the specified <see cref="Canvas"/> with the application, setting it as the active canvas.
         /// </summary>
-        /// <remarks>This method updates the application's state to use the provided <see cref="Canvas"/> 
+        /// <remarks>This method updates the application's state to use the provided <see cref="Canvas"/>
         /// as the active canvas. Ensure that the <paramref name="canvas"/> is properly initialized before calling this
         /// method.</remarks>
         /// <param name="canvas">The <see cref="Canvas"/> to be set as the active canvas. This parameter cannot be <see langword="null"/>.</param>
@@ -73,7 +62,7 @@ namespace InfinityRef
             {
                 Color = SKColors.DarkGray,
                 StrokeWidth = 1,
-                IsAntialias = true
+                IsAntialias = true,
             };
 
             using var typeface = SKTypeface.Default;
@@ -81,7 +70,7 @@ namespace InfinityRef
 
             var align = SKTextAlign.Left;
 
-            //  -- horizontal ticks + labels along the top edge --
+            // -- horizontal ticks + labels along the top edge --
             for (float x = 0; x <= width; x += spacing)
             {
                 // draw the tick
@@ -96,7 +85,7 @@ namespace InfinityRef
                 canvas.DrawText(label, textX, textY, align, font, tickPaint);
             }
 
-            //  -- vertical ticks + labels along the left edge --
+            // -- vertical ticks + labels along the left edge --
             // align text to left so we offset by half the text width
             for (float y = 0; y <= height; y += spacing)
             {
@@ -108,21 +97,13 @@ namespace InfinityRef
 
                 // draw beside the tick, vertically centered on the line
                 float textX = tickLen + textGap;
+
                 // we offset baseline so text sits −(textSize/2) above the y
                 float textY = y + (textSize / 2);
                 canvas.DrawText(label, textX, textY, align, font, tickPaint);
             }
         }
 
-
-        /// <summary>
-        /// Handles changes to the handler associated with the <see cref="CanvasView"/>.
-        /// </summary>
-        /// <remarks>This method is triggered when the handler for the <see cref="CanvasView"/> changes.
-        /// On Windows, it attaches the <see langword="PointerWheelChanged"/> event to the platform-specific <see
-        /// cref="Microsoft.UI.Xaml.UIElement"/> associated with the handler.</remarks>
-        /// <param name="sender">The source of the event. This parameter may be <see langword="null"/>.</param>
-        /// <param name="e">An <see cref="EventArgs"/> instance containing the event data.</param>
         private void OnHandlerChanged(object? sender, EventArgs e)
         {
             // On Windows, the PlatformView is a WinUI UIElement
@@ -191,6 +172,5 @@ namespace InfinityRef
                 layer.IsSelected = false;
             }
         }
-
     }
 }

@@ -6,14 +6,17 @@ namespace InfinityRef
 {
     public partial class MainPage
     {
+
         /// <summary>
-        /// Handles the paint surface event to render the current canvas layers onto the provided SkiaSharp canvas.
+        /// Handles the paint event for the canvas surface, rendering the current layers and applying transformations
+        /// such as panning and zooming.
         /// </summary>
-        /// <remarks>This method clears the canvas to a transparent background before rendering each layer
-        /// from the current canvas in the <see cref="MainViewModel"/>. The layers are drawn in the order they appear
-        /// in the collection.</remarks>
-        /// <param name="sender">The source of the event. Typically the control triggering the paint operation.</param>
-        /// <param name="e">The event arguments containing the SkiaSharp surface to be painted.</param>
+        /// <remarks>This method clears the canvas, applies transformations based on the current panning
+        /// and zoom settings, and renders all layers defined in the current canvas. It also calculates pixel-per-dip
+        /// factors to ensure proper scaling and stores layer bounds for hit testing.</remarks>
+        /// <param name="sender">The source of the event, typically the canvas view.</param>
+        /// <param name="e">The event arguments containing information about the surface to be painted, including the canvas and its
+        /// dimensions.</param>
         private void OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
         {
             var canvas = e.Surface.Canvas;

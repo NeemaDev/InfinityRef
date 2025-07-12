@@ -59,10 +59,10 @@ namespace InfinityRef.UI.Services
             // Return the result with the converted drop point
             return (true, result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y));
         }
-
         public bool IsSupportedType(string path)
         {
             return platformService.IsSupportedType(path);
         }
+
     }
 }
