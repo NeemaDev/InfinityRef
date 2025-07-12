@@ -2,6 +2,7 @@
 using InfinityRef.Core.Models;
 using InfinityRef.UI.Interfaces;
 using InfinityRef.UI.Rendering;
+using InfinityRef.UI.Services;
 using InfinityRef.UI.ViewModels;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
@@ -31,25 +32,21 @@ namespace InfinityRef
         private readonly MainViewModel mainViewModel;
         private readonly IDragDropService dragDropService;
         private readonly INavigationService navigationService;
+        private readonly CanvasInteractionService canvasInteractionService;
         private Dictionary<long, SKPoint> activeTouches = new();
         private bool isTouchPanning = false;
 
         List<(Layer layer, SKRect bounds)> hitTestBuffer = new();
         SKPoint lastTapPoint;
 
-        // Zoom and pan state variables.
-        float currentScale = 1f;
-        float startScale = 1f;
-        SKPoint canvasTranslate = new SKPoint(0, 0);
-        SKPoint startTranslate = new SKPoint(0, 0);
-
-        public MainPage(MainViewModel viewModel, INavigationService navigationService, IDragDropService dragDropService)
+        public MainPage(MainViewModel viewModel, INavigationService navigationService, IDragDropService dragDropService, CanvasInteractionService canvasInteractionService)
         {
             InitializeComponent();
             BindingContext = viewModel;
             mainViewModel = viewModel;
             this.dragDropService = dragDropService;
             this.navigationService = navigationService;
+            this.canvasInteractionService = canvasInteractionService;
 
             // Subscribe to canvas changes.
             navigationService.ActiveCanvasChanged += (_, __) => HookCanvas(navigationService.ActiveCanvas);
@@ -90,7 +87,7 @@ namespace InfinityRef
 
             // Convert drop point to canvas coordinates
             var devicePoint = new SKPoint(result.DropPoint.X, result.DropPoint.Y);
-            var canvasPoint = DeviceToCanvas(devicePoint);
+            var canvasPoint = canvasInteractionService.DeviceToCanvas(devicePoint);
 
             // Get current canvas bounds
             var canvas = mainViewModel.CurrentCanvas;
@@ -174,17 +171,17 @@ namespace InfinityRef
 
             hitTestBuffer.Clear();
 
+            // Move origin by panning.
+            canvas.Translate(canvasInteractionService.CanvasTranslate.X, canvasInteractionService.CanvasTranslate.Y);
+
+            // Apply zoom.
+            canvas.Scale(canvasInteractionService.CurrentScale, canvasInteractionService.CurrentScale);
+
             // Calculate pixel-per-dip factors.
             var viewWidthDip = (float)CanvasView.Width;
             var viewHeightDip = (float)CanvasView.Height;
             float pixelPerDipX = (viewWidthDip > 0) ? e.Info.Width / viewWidthDip : 1f;
             float pixelPerDipY = (viewHeightDip > 0) ? e.Info.Height / viewHeightDip : 1f;
-
-            // Move origin by panning.
-            canvas.Translate(canvasTranslate.X, canvasTranslate.Y);
-
-            // Apply zoom.
-            canvas.Scale(currentScale, currentScale);
 
             // Draw each layer and stash its rectangle for hit testing.
             foreach (var layer in mainViewModel.CurrentCanvas.Layers)
@@ -274,20 +271,17 @@ namespace InfinityRef
                 if (!isTouchPanning)
                 {
                     isTouchPanning = true;
-                    startTranslate = canvasTranslate;
+                    canvasInteractionService.StartPan(canvasInteractionService.CanvasTranslate);
                 }
-                // Calculate movement delta
-                var delta = points[0] - points[1];
-                var prevDelta = points[0] - points[1]; // You may want to store previous frame's points for smoother panning
 
                 // For simplicity, use the average movement of both fingers
                 var avgCurrent = new SKPoint((points[0].X + points[1].X) / 2, (points[0].Y + points[1].Y) / 2);
-                var avgStart = avgCurrent;
 
                 if (e.ActionType == SKTouchAction.Moved)
                 {
-                    var move = e.Location - lastTapPoint;
-                    canvasTranslate = new SKPoint(startTranslate.X + move.X, startTranslate.Y + move.Y);
+                    // Calculate movement delta from last tap point
+                    var move = avgCurrent - lastTapPoint;
+                    canvasInteractionService.UpdatePan(move);
                     CanvasView.InvalidateSurface();
                 }
             }
@@ -359,16 +353,8 @@ namespace InfinityRef
                 var x = (float)pointer.Value.X;
                 var y = (float)pointer.Value.Y;
 
-                var oldScale = currentScale;
-                var newScale = Math.Clamp(currentScale * zoomFactor, 1e-6f, 100f);
-
-                if (Math.Abs(newScale - oldScale) > float.Epsilon)
-                {
-                    currentScale = newScale;
-                    canvasTranslate.X = (canvasTranslate.X - x) * zoomFactor + x;
-                    canvasTranslate.Y = (canvasTranslate.Y - y) * zoomFactor + y;
-                    CanvasView.InvalidateSurface();
-                }
+                canvasInteractionService.UpdateWheelZoom(zoomFactor, new SKPoint(x, y));
+                CanvasView.InvalidateSurface();
             }
 
             e.Handled = true; // Mark the event as handled to prevent further propagation.
@@ -381,22 +367,14 @@ namespace InfinityRef
             {
                 case GestureStatus.Started:
                     // Rememer the initial scale and translation.
-                    startScale = currentScale;
-                    startTranslate = canvasTranslate;
+                    canvasInteractionService.StartPinch(canvasInteractionService.CurrentScale, canvasInteractionService.CanvasTranslate);
                     break;
                 case GestureStatus.Running:
-                    // Caclulate the new scale based on the pinch gesture.
-                    var newScale = startScale * e.Scale;
-                    currentScale = (float)Math.Clamp(newScale, 0.5f, 4f);
-
                     // Calculate the new translation based on the pinch center and scale origin.
                     var viewSize = CanvasView.CanvasSize;
                     var pinchCenter = new SKPoint((float)(viewSize.Width * e.ScaleOrigin.X), (float)(viewSize.Height * e.ScaleOrigin.Y));
 
-                    var dx = pinchCenter.X * (1 - currentScale);
-                    var dy = pinchCenter.Y * (1 - currentScale);
-
-                    canvasTranslate = new SKPoint(startTranslate.X + dx, startTranslate.Y + dy);
+                    canvasInteractionService.UpdatePinch((float)e.Scale, pinchCenter, viewSize);
 
                     CanvasView.InvalidateSurface(); // Refresh the canvas to apply the new scale and translation.
                     break;
@@ -438,14 +416,6 @@ namespace InfinityRef
             }
         }
 
-        private SKPoint DeviceToCanvas(SKPoint devicePoint)
-        {
-            // Reverse the translation and scaling applied in OnPaintSurface
-            var x = (devicePoint.X - canvasTranslate.X) / currentScale;
-            var y = (devicePoint.Y - canvasTranslate.Y) / currentScale;
-            return new SKPoint(x, y);
-        }
-
         private void SelectLayer(Layer layer)
         {
             layer.IsSelected = true;
@@ -470,8 +440,13 @@ namespace InfinityRef
         {
             isMousePanning = true;
             var pos = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender).Position;
-            mousePanStart = new SKPoint((float)pos.X, (float)pos.Y);
-            mousePanOrigin = canvasTranslate;
+            var startPoint = new SKPoint((float)pos.X, (float)pos.Y);
+
+            // Store the start point for delta calculation
+            mousePanStart = startPoint;
+
+            // Delegate to service
+            canvasInteractionService.StartPan(canvasInteractionService.CanvasTranslate);
             ((Microsoft.UI.Xaml.UIElement)sender).CapturePointer(e.Pointer);
             e.Handled = true;
         }
@@ -489,8 +464,9 @@ namespace InfinityRef
         if (isMousePanning)
         {
             var pos = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender).Position;
-            var delta = new SKPoint((float)pos.X - mousePanStart.X, (float)pos.Y - mousePanStart.Y);
-            canvasTranslate = new SKPoint(mousePanOrigin.X + delta.X, mousePanOrigin.Y + delta.Y);
+            var currentPoint = new SKPoint((float)pos.X, (float)pos.Y);
+            var delta = new SKPoint(currentPoint.X - mousePanStart.X, currentPoint.Y - mousePanStart.Y);
+            canvasInteractionService.UpdatePan(delta);
             CanvasView.InvalidateSurface();
             e.Handled = true;
         }

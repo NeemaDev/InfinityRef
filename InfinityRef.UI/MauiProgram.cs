@@ -41,6 +41,7 @@ namespace InfinityRef
 
             // Register Services.
             builder.Services.AddSingleton<CanvasStackHandler>();
+            builder.Services.AddSingleton<CanvasInteractionService>();
             builder.Services.AddSingleton<IFilePicker, FilePickerService>();
             builder.Services.AddSingleton<INavigationService, NavigationService>();
             builder.Services.AddSingleton<ISaveLoadService, SaveAndLoadService>();

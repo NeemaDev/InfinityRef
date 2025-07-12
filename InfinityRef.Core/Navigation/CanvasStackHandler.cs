@@ -4,12 +4,12 @@ namespace InfinityRef.Core.Navigation
 {
     public class CanvasStackHandler
     {
-        private readonly Stack<Canvas> _stack = new();
+        private readonly Stack<Canvas> stack = new();
 
-        public void Push(Canvas canvas) => _stack.Push(canvas);
+        public void Push(Canvas canvas) => stack.Push(canvas);
 
-        public Canvas? Pop() => _stack.Count > 0 ? _stack.Pop() : null;
+        public Canvas? Pop() => stack.Count > 0 ? stack.Pop() : null;
 
-        public Canvas? Peek() => _stack.Count > 0 ? _stack.Peek() : null;
+        public Canvas? Peek() => stack.Count > 0 ? stack.Peek() : null;
     }
 }
