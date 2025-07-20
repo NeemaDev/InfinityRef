@@ -5,7 +5,10 @@
         // Simple RGBA container.
         public ColorData(byte r, byte g, byte b, byte a = 255)
         {
-            R = r; G = g; B = b; A = a;
+            R = r;
+            G = g;
+            B = b;
+            A = a;
         }
 
         public byte R { get; set; }

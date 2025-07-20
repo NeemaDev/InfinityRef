@@ -6,7 +6,6 @@ namespace InfinityRef
 {
     public partial class MainPage
     {
-
         /// <summary>
         /// Handles the paint event for the canvas surface, rendering the current layers and applying transformations
         /// such as panning and zooming.
@@ -25,10 +24,10 @@ namespace InfinityRef
             hitTestBuffer.Clear();
 
             // Move origin by panning.
-            canvas.Translate(canvasInteractionService.CanvasTranslate.X, canvasInteractionService.CanvasTranslate.Y);
+            canvas.Translate(CanvasInteractionService.CanvasTranslate.X, CanvasInteractionService.CanvasTranslate.Y);
 
             // Apply zoom.
-            canvas.Scale(canvasInteractionService.CurrentScale, canvasInteractionService.CurrentScale);
+            canvas.Scale(CanvasInteractionService.CurrentScale, CanvasInteractionService.CurrentScale);
 
             // Calculate pixel-per-dip factors.
             var viewWidthDip = (float)CanvasView.Width;
@@ -37,7 +36,7 @@ namespace InfinityRef
             float pixelPerDipY = (viewHeightDip > 0) ? e.Info.Height / viewHeightDip : 1f;
 
             // Draw each layer and stash its rectangle for hit testing.
-            foreach (var layer in mainViewModel.CurrentCanvas.Layers)
+            foreach (var layer in mainViewModel.CurrentCanvas?.Layers)
             {
                 var bounds = LayerRenderer.Draw(layer, canvas, (pixelPerDipX, pixelPerDipY));
                 hitTestBuffer.Add((layer, bounds));

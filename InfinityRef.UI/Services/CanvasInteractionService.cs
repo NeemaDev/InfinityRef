@@ -1,8 +1,9 @@
-﻿using SkiaSharp;
+﻿using InfinityRef.UI.Interfaces;
+using SkiaSharp;
 
 namespace InfinityRef.UI.Services
 {
-    public class CanvasInteractionService
+    public class CanvasInteractionService : ICanvasInteractionService
     {
         private float startScale = 1f;
         private SKPoint startTranslate = new SKPoint(0, 0);

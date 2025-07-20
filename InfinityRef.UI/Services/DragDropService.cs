@@ -9,11 +9,11 @@ namespace InfinityRef.UI.Services
     {
         private readonly IDragDropService platformService;
         private readonly MainViewModel mainViewModel;
-        private readonly CanvasInteractionService canvasInteractionService;
+        private readonly ICanvasInteractionService canvasInteractionService;
 
         public DragDropService(IDragDropService platformService,
                                   MainViewModel mainViewModel,
-                                  CanvasInteractionService canvasInteractionService)
+                                  ICanvasInteractionService canvasInteractionService)
         {
             this.platformService = platformService;
             this.mainViewModel = mainViewModel;

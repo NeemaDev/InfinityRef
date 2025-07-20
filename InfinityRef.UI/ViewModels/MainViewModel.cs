@@ -19,7 +19,7 @@ namespace InfinityRef.UI.ViewModels
         }
 
         public RelayCommand LoadCanvasCommand { get; }
-        public Canvas CurrentCanvas { get; private set; }
+        public Canvas? CurrentCanvas { get; private set; }
 
         /// <summary>
         /// Sets the specified canvas as the active canvas.
@@ -41,23 +41,14 @@ namespace InfinityRef.UI.ViewModels
         public Task HandleDrop(byte[] imageData, Position2D dropPoint)
         {
             var layer = new ImageLayer(imageData, dropPoint);
-            CurrentCanvas.AddLayer(layer);
+            CurrentCanvas?.AddLayer(layer);
 
-            Debug.WriteLine("Layer added. Total layers: " + CurrentCanvas.LayerCount);
+            Debug.WriteLine("Layer added. Total layers: " + CurrentCanvas?.LayerCount);
             return Task.CompletedTask;
         }
 
         private async Task LoadCanvasAsync()
         {
-            //var filePath = await filePicker.PickFileAsync(new[] { ".irf" });
-            //if (!string.IsNullOrWhiteSpace(filePath))
-            //{
-            //    var canvas = await saveLoadService.LoadCanvas(filePath);
-            //    if (canvas != null)
-            //    {
-            //        navigationService.OpenCanvas(canvas);
-            //    }
-            //}
         }
 
     }

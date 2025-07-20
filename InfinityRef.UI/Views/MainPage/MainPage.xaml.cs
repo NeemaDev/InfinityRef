@@ -12,9 +12,6 @@ namespace InfinityRef
         private readonly MainViewModel mainViewModel;
         private readonly IDragDropService dragDropService;
         private readonly INavigationService navigationService;
-        private readonly CanvasInteractionService canvasInteractionService;
-        private Dictionary<long, SKPoint> activeTouches = new Dictionary<long, SKPoint>();
-        private bool isTouchPanning = false;
 
         private List<(Layer layer, SKRect bounds)> hitTestBuffer = new List<(Layer layer, SKRect bounds)>();
         private SKPoint lastTapPoint;
@@ -22,22 +19,24 @@ namespace InfinityRef
         public MainPage(MainViewModel viewModel,
                         INavigationService navigationService,
                         DragDropService dragDropService,
-                        CanvasInteractionService canvasInteractionService)
+                        ICanvasInteractionService canvasInteractionService)
         {
+            CanvasInteractionService = canvasInteractionService;
+
             InitializeComponent();
             BindingContext = viewModel;
             mainViewModel = viewModel;
             this.dragDropService = dragDropService;
             this.navigationService = navigationService;
-            this.canvasInteractionService = canvasInteractionService;
 
             // Subscribe to canvas changes.
             navigationService.ActiveCanvasChanged += (_, __) => HookCanvas(navigationService.ActiveCanvas);
-            CanvasView.HandlerChanged += OnHandlerChanged; // Triggered when view is created, controll is added/removed, orientation change, theme change, etc.
 
             // Set the first canvas.
             HookCanvas(navigationService.ActiveCanvas);
         }
+
+        public ICanvasInteractionService CanvasInteractionService { get; private set; }
 
         /// <summary>
         /// Associates the specified <see cref="Canvas"/> with the application, setting it as the active canvas.
@@ -104,30 +103,6 @@ namespace InfinityRef
             }
         }
 
-        private void OnHandlerChanged(object? sender, EventArgs e)
-        {
-            // On Windows, the PlatformView is a WinUI UIElement
-#if WINDOWS
-            if (CanvasView?.Handler?.PlatformView is Microsoft.UI.Xaml.UIElement uiElem)
-            {
-                uiElem.PointerWheelChanged += OnPointerWheelChanged;
-                uiElem.PointerPressed += OnPointerPressed;
-                uiElem.PointerReleased += OnPointerReleased;
-                uiElem.PointerMoved += OnPointerMoved;
-                uiElem.KeyDown += OnKeyDown;
-                uiElem.KeyUp += OnKeyUp;
-
-                // Make focusable and set focus
-                uiElem.IsTabStop = true;
-                uiElem.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
-                uiElem.PointerEntered += (s, args) =>
-                {
-                    uiElem.Focus(Microsoft.UI.Xaml.FocusState.Pointer);
-                };
-            }
-#endif
-        }
-
         /// <summary>
         /// Handles a hit test operation to determine whether a user tap intersects with any layers.
         /// </summary>
@@ -160,7 +135,7 @@ namespace InfinityRef
         private void SelectLayer(Layer layer)
         {
             layer.IsSelected = true;
-            mainViewModel.CurrentCanvas.Layers.Where(l => l != layer) // Deselect all other layers
+            mainViewModel.CurrentCanvas?.Layers.Where(l => l != layer) // Deselect all other layers
                 .ToList()
                 .ForEach(l => l.IsSelected = false);
         }
