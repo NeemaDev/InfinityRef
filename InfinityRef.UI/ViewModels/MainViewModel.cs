@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using InfinityRef.Core.Interfaces;
 using InfinityRef.Core.Models;
+using System.ComponentModel;
 using System.Diagnostics;
 
 namespace InfinityRef.UI.ViewModels
@@ -9,6 +10,7 @@ namespace InfinityRef.UI.ViewModels
     {
         private readonly ISaveLoadService saveLoadService;
         private readonly Core.Interfaces.IFilePicker filePicker;
+        private CanvasViewModel? currentCanvas;
 
         public MainViewModel(ISaveLoadService saveLoadService, Core.Interfaces.IFilePicker filePicker)
         {
@@ -18,16 +20,32 @@ namespace InfinityRef.UI.ViewModels
             LoadCanvasCommand = new RelayCommand(async () => await LoadCanvasAsync());
         }
 
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public RelayCommand LoadCanvasCommand { get; }
-        public Canvas? CurrentCanvas { get; private set; }
+        public CanvasViewModel? CurrentCanvas
+        {
+            get => currentCanvas ?? null;
+            set
+            {
+                if (currentCanvas != value)
+                {
+                    currentCanvas = value;
+                    OnPropertyChanged(nameof(CurrentCanvas));
+                }
+            }
+        }
+
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         /// <summary>
         /// Sets the specified canvas as the active canvas.
         /// </summary>
         /// <param name="canvas">The canvas to set as active. Cannot be <see langword="null"/>.</param>
-        public void SetActiveCanvas(Canvas canvas)
+        public void SetActiveCanvas(CanvasViewModel canvasVm)
         {
-            CurrentCanvas = canvas;
+            CurrentCanvas = canvasVm;
         }
 
         /// <summary>
@@ -38,9 +56,9 @@ namespace InfinityRef.UI.ViewModels
         /// completed task to support asynchronous workflows.</remarks>
         /// <param name="imageData">The image data in byte array format to be used for creating the new layer. Cannot be null or empty.</param>
         /// <returns>A completed <see cref="Task"/> representing the asynchronous operation.</returns>
-        public Task HandleDrop(byte[] imageData, Position2D dropPoint)
+        public Task HandleDrop(byte[] imageData, Position2D dropPoint, Dimension imageDimension)
         {
-            var layer = new ImageLayer(imageData, dropPoint);
+            var layer = new ImageLayer(imageData, dropPoint, imageDimension);
             CurrentCanvas?.AddLayer(layer);
 
             Debug.WriteLine("Layer added. Total layers: " + CurrentCanvas?.LayerCount);

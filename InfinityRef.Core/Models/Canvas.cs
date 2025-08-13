@@ -1,32 +1,13 @@
-﻿using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-
-namespace InfinityRef.Core.Models
+﻿namespace InfinityRef.Core.Models
 {
     public class Canvas
     {
-        public Canvas()
-        {
-            Layers.CollectionChanged += OnLayersChanged;
-        }
-
         public double MinX { get; set; } = 0;
         public double MaxX { get; set; } = 0;
         public double MinY { get; set; } = 0;
         public double MaxY { get; set; } = 0;
 
-        public ObservableCollection<Layer> Layers { get; } = new ObservableCollection<Layer>();
-        public int LayerCount => Layers.Count;
-
-        public void AddLayer(Layer layer)
-        {
-            Layers.Add(layer);
-        }
-
-        public void RemoveLayer(Layer layer)
-        {
-            Layers.Remove(layer);
-        }
+        public List<Layer> Layers { get; } = new List<Layer>();
 
         public void UpdateBounds()
         {
@@ -49,11 +30,6 @@ namespace InfinityRef.Core.Models
             MinY = y < MinY ? y : MinY;
             MaxX = x + width > MaxX ? x + width : MaxX;
             MaxY = y + height > MaxY ? y + height : MaxY;
-        }
-
-        private void OnLayersChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            UpdateBounds();
         }
     }
 }

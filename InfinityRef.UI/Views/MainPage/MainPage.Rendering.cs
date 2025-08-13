@@ -21,7 +21,7 @@ namespace InfinityRef
             var canvas = e.Surface.Canvas;
             canvas.Clear(SKColors.Transparent);
 
-            hitTestBuffer.Clear();
+            MainViewModel.CurrentCanvas.ClearLayerStack();
 
             // Move origin by panning.
             canvas.Translate(CanvasInteractionService.CanvasTranslate.X, CanvasInteractionService.CanvasTranslate.Y);
@@ -36,10 +36,10 @@ namespace InfinityRef
             float pixelPerDipY = (viewHeightDip > 0) ? e.Info.Height / viewHeightDip : 1f;
 
             // Draw each layer and stash its rectangle for hit testing.
-            foreach (var layer in mainViewModel.CurrentCanvas?.Layers)
+            foreach (var layer in MainViewModel.CurrentCanvas.Layers)
             {
                 var bounds = LayerRenderer.Draw(layer, canvas, (pixelPerDipX, pixelPerDipY));
-                hitTestBuffer.Add((layer, bounds));
+                MainViewModel.CurrentCanvas.AddLayerBounds((layer, bounds));
             }
 
             // only temporary.

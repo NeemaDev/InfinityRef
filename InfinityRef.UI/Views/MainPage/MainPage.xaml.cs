@@ -1,53 +1,49 @@
-﻿using InfinityRef.Core.Interfaces;
+﻿using CommunityToolkit.Mvvm.Input;
 using InfinityRef.Core.Models;
 using InfinityRef.UI.Interfaces;
 using InfinityRef.UI.Services;
 using InfinityRef.UI.ViewModels;
 using SkiaSharp;
+using System.Diagnostics;
 
 namespace InfinityRef
 {
     public partial class MainPage : ContentPage
     {
-        private readonly MainViewModel mainViewModel;
         private readonly IDragDropService dragDropService;
-        private readonly INavigationService navigationService;
-
-        private List<(Layer layer, SKRect bounds)> hitTestBuffer = new List<(Layer layer, SKRect bounds)>();
-        private SKPoint lastTapPoint;
 
         public MainPage(MainViewModel viewModel,
-                        INavigationService navigationService,
                         DragDropService dragDropService,
                         ICanvasInteractionService canvasInteractionService)
         {
             CanvasInteractionService = canvasInteractionService;
+            RenderCanvasCommand = new RelayCommand(RenderCanvas);
 
-            InitializeComponent();
-            BindingContext = viewModel;
-            mainViewModel = viewModel;
+            MainViewModel = viewModel;
             this.dragDropService = dragDropService;
-            this.navigationService = navigationService;
-
-            // Subscribe to canvas changes.
-            navigationService.ActiveCanvasChanged += (_, __) => HookCanvas(navigationService.ActiveCanvas);
 
             // Set the first canvas.
-            HookCanvas(navigationService.ActiveCanvas);
+            var canvasVm = new CanvasViewModel(new Canvas(), new LayerStackService());
+            MainViewModel.SetActiveCanvas(canvasVm);
+
+            // Initializing Component at the end due to behaviour needing the bindings early.
+            InitializeComponent();
+
+            Debug.WriteLine("Binding Context set in MainPage constructor");
+            BindingContext = viewModel;
+
         }
 
         public ICanvasInteractionService CanvasInteractionService { get; private set; }
+        public MainViewModel MainViewModel { get; private set; }
+        public RelayCommand RenderCanvasCommand { get; }
 
-        /// <summary>
-        /// Associates the specified <see cref="Canvas"/> with the application, setting it as the active canvas.
-        /// </summary>
-        /// <remarks>This method updates the application's state to use the provided <see cref="Canvas"/>
-        /// as the active canvas. Ensure that the <paramref name="canvas"/> is properly initialized before calling this
-        /// method.</remarks>
-        /// <param name="canvas">The <see cref="Canvas"/> to be set as the active canvas. This parameter cannot be <see langword="null"/>.</param>
-        private void HookCanvas(Canvas canvas)
+        private void RenderCanvas()
         {
-            mainViewModel.SetActiveCanvas(canvas);
+            if (CanvasView is not null)
+            {
+                CanvasView.InvalidateSurface();
+            }
         }
 
         private void DrawRulers(SKCanvas canvas, int width, int height)
@@ -100,51 +96,6 @@ namespace InfinityRef
                 // we offset baseline so text sits −(textSize/2) above the y
                 float textY = y + (textSize / 2);
                 canvas.DrawText(label, textX, textY, align, font, tickPaint);
-            }
-        }
-
-        /// <summary>
-        /// Handles a hit test operation to determine whether a user tap intersects with any layers.
-        /// </summary>
-        /// <remarks>This method checks the layers in reverse order of their addition to determine if the
-        /// tap intersects with their bounds. If a layer is hit, it is selected, and the canvas is refreshed to reflect
-        /// the selection. If no layers are hit, all selections are cleared, and the canvas is refreshed.</remarks>
-        /// <param name="lastTapPoint">The point where the user last tapped, represented as an <see cref="SKPoint"/>.</param>
-        private void HandleHitTest(SKPoint lastTapPoint)
-        {
-            var hit = false;
-
-            foreach (var (layer, bounds) in hitTestBuffer.AsEnumerable().Reverse())
-            {
-                if (bounds.Contains(lastTapPoint))
-                {
-                    SelectLayer(layer);
-                    hit = true;
-                    CanvasView.InvalidateSurface(); // Refresh the canvas to reflect the selection.
-                    return;
-                }
-            }
-
-            if (!hit)
-            {
-                DeselectAll();
-                CanvasView.InvalidateSurface();
-            }
-        }
-
-        private void SelectLayer(Layer layer)
-        {
-            layer.IsSelected = true;
-            mainViewModel.CurrentCanvas?.Layers.Where(l => l != layer) // Deselect all other layers
-                .ToList()
-                .ForEach(l => l.IsSelected = false);
-        }
-
-        private void DeselectAll()
-        {
-            foreach (var (layer, _) in hitTestBuffer)
-            {
-                layer.IsSelected = false;
             }
         }
     }

@@ -41,20 +41,20 @@ namespace InfinityRef.UI.Services
             var canvasPoint = canvasInteractionService.DeviceToCanvas(devicePoint);
 
             // Expand canvas bounds if needed
-            var canvas = mainViewModel.CurrentCanvas;
-            if (canvas.Layers.Count > 0)
+            var canvasVm = mainViewModel.CurrentCanvas;
+            if (canvasVm.LayerCount > 0)
             {
-                canvas.UpdateBounds();
+                canvasVm.UpdateBounds();
             }
 
             using var bitmap = SKBitmap.Decode(result.ImageData);
             float imgWidth = bitmap?.Width ?? 0;
             float imgHeight = bitmap?.Height ?? 0;
 
-            canvas.UpdateBounds(canvasPoint.X, canvasPoint.Y, imgWidth, imgHeight);
+            canvasVm.UpdateBounds(canvasPoint.X, canvasPoint.Y, imgWidth, imgHeight);
 
             // Place the image at the drop point in canvas coordinates
-            await mainViewModel.HandleDrop(result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y));
+            await mainViewModel.HandleDrop(result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y), new Dimension(imgWidth, imgHeight));
 
             // Return the result with the converted drop point
             return (true, result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y));

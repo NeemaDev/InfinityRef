@@ -13,11 +13,6 @@ namespace InfinityRef.Behaviors
         public static readonly BindableProperty CanvasInteractionServiceProperty
             = BindableProperty.Create(nameof(CanvasInteractionService), typeof(ICanvasInteractionService), typeof(PanZoomBehaviour), default(ICanvasInteractionService));
 
-#if WINDOWS
-        private bool isMousePanning = false;
-        private bool isSpaceDown = false;
-        private SKPoint mousePanStart;
-#endif
         private PinchGestureRecognizer? pinchGesture;
         private PanGestureRecognizer? panGesture;
         private SKCanvasView? canvasView;
@@ -37,7 +32,11 @@ namespace InfinityRef.Behaviors
             panGesture = new PanGestureRecognizer();
             panGesture.PanUpdated += (s, e) =>
             {
-                if (e.StatusType == GestureStatus.Running)
+                if (e.StatusType == GestureStatus.Started)
+                {
+                    CanvasInteractionService.StartPan(CanvasInteractionService.CanvasTranslate);
+                }
+                else if (e.StatusType == GestureStatus.Running)
                 {
                     CanvasInteractionService.UpdatePan(new SKPoint((float)e.TotalX, (float)e.TotalY));
                     canvas.InvalidateSurface();
@@ -82,11 +81,6 @@ namespace InfinityRef.Behaviors
                 {
                     uiElement.IsTabStop = true; // Make focusable
                     uiElement.PointerWheelChanged += OnPointerWheelChanged;
-                    uiElement.PointerPressed += OnPointerPressed;
-                    uiElement.PointerMoved += OnPointerMoved;
-                    uiElement.PointerReleased += OnPointerReleased;
-                    uiElement.KeyDown += OnKeyDown;
-                    uiElement.KeyUp += OnKeyUp;
 
                     // Give focus.
                     uiElement.Focus(FocusState.Programmatic);
@@ -99,17 +93,7 @@ namespace InfinityRef.Behaviors
         {
             canvas.GestureRecognizers.Remove(panGesture);
             canvas.GestureRecognizers.Remove(pinchGesture);
-#if WINDOWS
-            if (canvas?.Handler?.PlatformView is UIElement uiElement)
-            {
-                uiElement.PointerWheelChanged -= OnPointerWheelChanged;
-                uiElement.PointerPressed -= OnPointerPressed;
-                uiElement.PointerMoved -= OnPointerMoved;
-                uiElement.PointerReleased -= OnPointerReleased;
-                uiElement.KeyDown -= OnKeyDown;
-                uiElement.KeyUp -= OnKeyUp;
-            }
-#endif
+
             if (canvas != null)
             {
                 base.OnDetachingFrom(canvas);
@@ -141,61 +125,6 @@ namespace InfinityRef.Behaviors
                 }
 
                 e.Handled = true; // Mark the event as handled to prevent further propagation.
-            }
-        }
-
-        private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
-        {
-            var props = e.GetCurrentPoint((UIElement)sender).Properties;
-            if (props.IsMiddleButtonPressed || (isSpaceDown && props.IsLeftButtonPressed))
-            {
-                isMousePanning = true;
-                var pos = e.GetCurrentPoint((UIElement)sender).Position;
-                var startPoint = new SKPoint((float)pos.X, (float)pos.Y);
-
-                // Store the start point for delta calculation
-                mousePanStart = startPoint;
-
-                // Delegate to service
-                CanvasInteractionService.StartPan(CanvasInteractionService.CanvasTranslate);
-                ((UIElement)sender).CapturePointer(e.Pointer);
-                e.Handled = true;
-            }
-        }
-
-        private void OnPointerMoved(object sender, PointerRoutedEventArgs e)
-        {
-            if (canvasView != null && isMousePanning)
-            {
-                var pos = e.GetCurrentPoint((UIElement)sender).Position;
-                var currentPoint = new SKPoint((float)pos.X, (float)pos.Y);
-                var delta = new SKPoint(currentPoint.X - mousePanStart.X, currentPoint.Y - mousePanStart.Y);
-                CanvasInteractionService.UpdatePan(delta);
-                canvasView.InvalidateSurface();
-                e.Handled = true;
-            }
-        }
-
-        private void OnPointerReleased(object sender, PointerRoutedEventArgs e)
-        {
-            isMousePanning = false;
-            ((UIElement)sender).ReleasePointerCapture(e.Pointer);
-            e.Handled = true;
-        }
-
-        private void OnKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
-        {
-            if (e.Key == Windows.System.VirtualKey.Space)
-            {
-                isSpaceDown = true;
-            }
-        }
-
-        private void OnKeyUp(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
-        {
-            if (e.Key == Windows.System.VirtualKey.Space)
-            {
-                isSpaceDown = false;
             }
         }
 #endif

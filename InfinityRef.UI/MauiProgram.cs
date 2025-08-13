@@ -37,15 +37,15 @@ namespace InfinityRef
 
             // Register ViewModels.
             builder.Services.AddSingleton<MainViewModel>();
-            builder.Services.AddTransient<CanvasViewModel>();
+            builder.Services.AddTransient<UI.ViewModels.CanvasViewModel>();
 
             // Register Services.
             builder.Services.AddSingleton<CanvasStackHandler>();
             builder.Services.AddSingleton<ICanvasInteractionService, CanvasInteractionService>();
             builder.Services.AddSingleton<IFilePicker, FilePickerService>();
-            builder.Services.AddSingleton<INavigationService, NavigationService>();
             builder.Services.AddSingleton<ISaveLoadService, SaveAndLoadService>();
             builder.Services.AddSingleton<DragDropService>();
+            builder.Services.AddSingleton<Core.Interfaces.ILayerStackService, LayerStackService>();
 #if WINDOWS
             builder.Services.AddSingleton<IDragDropService, WindowsDragDropService>();
 #else

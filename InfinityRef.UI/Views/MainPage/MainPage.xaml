@@ -23,6 +23,10 @@
                                    EnableTouchEvents="True">
                 <skia:SKCanvasView.Behaviors>
                     <behaviors:PanZoomBehaviour CanvasInteractionService="{Binding Source={x:Reference RootPage}, Path=CanvasInteractionService}" />
+                    
+                    <behaviors:TapBehavior CanvasInteractionService="{Binding Source={x:Reference RootPage}, Path=CanvasInteractionService}"
+                                           RepaintCanvasCommand="{Binding Source={x:Reference RootPage}, Path=RenderCanvasCommand}"
+                                           CanvasViewModel="{Binding Source={x:Reference RootPage}, Path=MainViewModel.CurrentCanvas}"/>
                 </skia:SKCanvasView.Behaviors>
             </skia:SKCanvasView>
             </ContentView>
