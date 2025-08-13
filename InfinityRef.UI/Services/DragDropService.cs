@@ -42,7 +42,7 @@ namespace InfinityRef.UI.Services
 
             // Expand canvas bounds if needed
             var canvasVm = mainViewModel.CurrentCanvas;
-            if (canvasVm.LayerCount > 0)
+            if (canvasVm?.LayerCount > 0)
             {
                 canvasVm.UpdateBounds();
             }
@@ -51,7 +51,7 @@ namespace InfinityRef.UI.Services
             float imgWidth = bitmap?.Width ?? 0;
             float imgHeight = bitmap?.Height ?? 0;
 
-            canvasVm.UpdateBounds(canvasPoint.X, canvasPoint.Y, imgWidth, imgHeight);
+            canvasVm?.UpdateBounds(canvasPoint.X, canvasPoint.Y, imgWidth, imgHeight);
 
             // Place the image at the drop point in canvas coordinates
             await mainViewModel.HandleDrop(result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y), new Dimension(imgWidth, imgHeight));
@@ -59,6 +59,7 @@ namespace InfinityRef.UI.Services
             // Return the result with the converted drop point
             return (true, result.ImageData, new Position2D(canvasPoint.X, canvasPoint.Y));
         }
+
         public bool IsSupportedType(string path)
         {
             return platformService.IsSupportedType(path);

@@ -1,5 +1,6 @@
 ﻿using InfinityRef.Core.Models;
 using SkiaSharp;
+using System.Diagnostics;
 
 namespace InfinityRef.UI.Rendering
 {
@@ -54,6 +55,7 @@ namespace InfinityRef.UI.Rendering
                 var scaledY = imageLayer.Position.Y * scaleFactors.y;
 
                 var dest = new SKRect(scaledX, scaledY, scaledX + bitmap.Width, scaledY + bitmap.Height);
+                Debug.WriteLine($"Drawing image at {imageLayer.Position} with size {bitmap.Width}x{bitmap.Height}");
 
                 // Apply grayscale or other effects.
                 using var paint = new SKPaint();
